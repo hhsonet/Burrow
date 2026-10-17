@@ -5,8 +5,9 @@
       "name": "uiu",
       "addr": "10.100.110.103",
       "port": 22,
+      "altAddr": "103.109.52.41",
       "user": "aigpu",
-      "group": "Unsorted",
+      "group": "UIU-VM_GPU",
       "tags": [],
       "auth": "password",
       "key": "",
@@ -17,12 +18,26 @@
       "name": "IAR-GPU",
       "addr": "103.109.52.30",
       "port": 22,
+      "altAddr": "",
       "user": "iargpu",
-      "group": "Unsorted",
+      "group": "UIU-VM_GPU",
       "tags": [],
       "auth": "password",
       "key": "",
       "pw": "@uiugpuIAR102"
+    },
+    {
+      "id": "h1792263463210",
+      "name": "IAR",
+      "addr": "103.109.52.12",
+      "port": 22,
+      "altAddr": "",
+      "user": "hirelens",
+      "group": "UIU-VM_GPU",
+      "tags": [],
+      "auth": "password",
+      "key": "",
+      "pw": "UIU@vm35#"
     }
   ],
   "forwards": [],
@@ -86,6 +101,8 @@
   ],
   "known": {
     "10.100.110.103:22": "SHA256:2QNybfjyHOeS/zMrW5IlCa7TdnnPvi9EAev77k2JlsA",
-    "103.109.52.30:22": "SHA256:Kt9i0Yz1r+/7xnP8Oe3iPgEkXQLlWm5qKhuPdap9T5Y"
+    "103.109.52.30:22": "SHA256:Kt9i0Yz1r+/7xnP8Oe3iPgEkXQLlWm5qKhuPdap9T5Y",
+    "103.109.52.12:22": "SHA256:pJL+K1t5nWz0l2TR8OPTgK9nw8PQu9TPQbQhrCYfFuM",
+    "103.109.52.41:22": "SHA256:2QNybfjyHOeS/zMrW5IlCa7TdnnPvi9EAev77k2JlsA"
   }
 }

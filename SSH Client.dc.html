@@ -42,7 +42,10 @@ input,select,button{font-family:inherit}
     <div style="flex:1;overflow:auto;padding:4px 8px 16px;border-top:1px solid #1f2125">
       <sc-for list="{{ sidebarGroups }}" as="g" hint-placeholder-count="3">
         <div>
-          <div style="padding:14px 10px 6px;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#6f737c">{{ g.name }}</div>
+          <button onClick="{{ g.pick }}" title="Show only this group" style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:10px;padding:6px 10px;border:none;border-radius:6px;background:{{ g.bg }};font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:{{ g.color }};cursor:pointer;text-align:left" style-hover="background:#1b1c20;color:#e6e7ea">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ g.name }}</span>
+            <span style="font-family:'Geist Mono',monospace;color:#6f737c">{{ g.count }}</span>
+          </button>
           <sc-for list="{{ g.hosts }}" as="h" hint-placeholder-count="2">
             <button onClick="{{ h.connect }}" style="display:flex;align-items:center;gap:10px;width:100%;height:30px;padding:0 10px;border:none;border-radius:6px;background:{{ h.rowBg }};color:#c9cbd1;font-size:13px;cursor:pointer;text-align:left" style-hover="background:#1b1c20;color:#e6e7ea">
               <span style="width:7px;height:7px;border-radius:50%;background:{{ h.dot }};flex-shrink:0"></span>
@@ -78,19 +81,20 @@ input,select,button{font-family:inherit}
             <div>
               <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:28px">
                 <div>
-                  <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.02em">Hosts</h1>
-                  <div style="margin-top:4px;color:#8b8f98">{{ hostSummary }}</div>
+                  <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.02em">{{ hostsTitle }}</h1>
+                  <div style="margin-top:4px;color:#8b8f98">{{ hostSummary }}<sc-if value="{{ hasGroupFilter }}" hint-placeholder-val="{{ false }}"> · <button onClick="{{ clearGroup }}" style="border:none;background:transparent;padding:0;color:{{ accent }};font-size:13px;cursor:pointer">Show all groups</button></sc-if></div>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
                   <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Filter by name, address, tag" spellCheck="false" style="width:240px;max-width:100%;height:34px;padding:0 12px;background:#121316;border:1px solid #24262b;border-radius:8px;color:#e6e7ea;font-size:13px;outline:none" style-focus="border-color:#3a3d43">
                   <button onClick="{{ openNewHost }}" style="height:34px;padding:0 14px;border:none;border-radius:8px;background:{{ accent }};color:#0b0c0e;font-weight:500;font-size:13px;cursor:pointer">New host</button>
                 </div>
               </div>
-              <sc-for list="{{ filteredGroups }}" as="g" hint-placeholder-count="2">
+                            <sc-for list="{{ filteredGroups }}" as="g" hint-placeholder-count="2">
                 <div style="margin-bottom:28px">
                   <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">
                     <span style="font-size:12px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#8b8f98">{{ g.name }}</span>
                     <span style="font-size:12px;color:#6f737c">{{ g.count }}</span>
+                    <button onClick="{{ g.rename }}" title="Rename group" style="width:22px;height:22px;border:none;border-radius:5px;background:transparent;color:#6f737c;cursor:pointer;font-size:12px" style-hover="background:#24262b;color:#e6e7ea">✎</button>
                   </div>
                   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px">
                     <sc-for list="{{ g.hosts }}" as="h" hint-placeholder-count="3">
@@ -101,6 +105,14 @@ input,select,button{font-family:inherit}
                           <span style="font-weight:500;font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.name }}</span>
                         </div>
                         <div style="font-family:'Geist Mono',monospace;font-size:12px;color:#8b8f98">{{ h.endpoint }}</div>
+                        <sc-if value="{{ h.hasAlt }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#e8b85a;margin-top:-4px">{{ h.altText }}</div></sc-if>
+                        <sc-if value="{{ h.hasSys }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#a4a8b0;margin-top:-4px">{{ h.sysText }}</div></sc-if>
+                        <div style="width:100%">
+                          <div style="display:flex;gap:2px;height:18px;width:100%">
+                            <sc-for list="{{ h.bars }}" as="b"><span style="flex:1;border-radius:2px;background:{{ b.c }}" title="{{ b.t }}"></span></sc-for>
+                          </div>
+                          <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:#6f737c"><span>24h ago</span><span>{{ h.uptimeText }}</span><span>now</span></div>
+                        </div>
                         <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px">
                           <div style="display:flex;gap:4px;flex-wrap:wrap">
                             <sc-for list="{{ h.tagList }}" as="tg">
@@ -261,6 +273,7 @@ input,select,button{font-family:inherit}
             </div>
             <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
               <button onClick="{{ toggleSftp }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ sftpBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Files</button>
+              <button onClick="{{ toggleDb }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ dbBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Database</button>
               <button onClick="{{ toggleCron }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ cronBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Cron</button>
               <button onClick="{{ toggleServices }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ servicesBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Services</button>
               <button onClick="{{ togglePorts }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ portsBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Ports</button>
@@ -310,6 +323,107 @@ input,select,button{font-family:inherit}
               </sc-if>
             </div>
             <div onDragOver="{{ onDragOver }}" onDrop="{{ onDrop }}" style="margin:12px;padding:16px;border:1px dashed #2f3237;border-radius:8px;text-align:center;color:#8b8f98;font-size:12px;line-height:1.5">Drop files to upload to<br><span style="font-family:'Geist Mono',monospace;color:#c9cbd1">{{ sftpPath }}</span></div>
+          </aside>
+        </sc-if>
+
+        <sc-if value="{{ panelDb }}" hint-placeholder-val="{{ false }}">
+          <aside style="width:min(640px,58%);min-width:340px;flex-shrink:1;border-left:1px solid #1f2125;background:#121316;display:flex;flex-direction:column;min-height:0">
+            <div style="display:flex;align-items:center;height:48px;padding:0 8px 0 16px;border-bottom:1px solid #1f2125;flex-shrink:0">
+              <span style="font-weight:500">Database</span>
+              <span style="margin-left:8px;font-size:11px;color:#6f737c">read-only</span>
+              <span style="flex:1"></span>
+              <button onClick="{{ dbReload }}" title="Refresh" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:#8b8f98;font-size:14px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">↻</button>
+              <button onClick="{{ closePanel }}" title="Close panel" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:#8b8f98;font-size:15px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">×</button>
+            </div>
+            <div style="flex:1;overflow:auto;padding:10px 12px 16px">
+              <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+                <sc-for list="{{ dbEngines }}" as="e"><button onClick="{{ e.pick }}" style="height:26px;padding:0 10px;border:1px solid #2a2c31;border-radius:13px;background:{{ e.bg }};color:#e6e7ea;font-size:12px;cursor:pointer">{{ e.label }} <span style="color:#8b8f98">{{ e.sub }}</span></button></sc-for>
+                <sc-if value="{{ dbLoading }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#6f737c">Working…</span></sc-if>
+              </div>
+              <sc-if value="{{ dbHasError }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;font-size:12px;color:#f07a6a;white-space:pre-wrap;word-break:break-word">{{ dbError }}</div></sc-if>
+              <sc-if value="{{ dbNeedLogin }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:12px;padding:12px;border:1px solid #222429;border-radius:10px;background:#141518">
+                  <div style="font-size:12px;color:#a4a8b0;margin-bottom:8px">Could not log in without a password. Enter a database user for this session. It is sent to the server over SSH and not saved.</div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <input value="{{ dbUser }}" onChange="{{ onDbUser }}" placeholder="DB user" spellCheck="false" autoComplete="off" style="width:150px;height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                    <input type="password" value="{{ dbPw }}" onChange="{{ onDbPw }}" placeholder="Password" autoComplete="off" style="width:170px;height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                    <button onClick="{{ dbLogin }}" style="height:32px;padding:0 12px;border:none;border-radius:8px;background:{{ accent }};color:#0b0c0e;font-weight:500;font-size:12px;cursor:pointer">Connect</button>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ dbReady }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:6px;margin:12px 0 4px">
+                  <button onClick="{{ dbViewDbs }}" style="height:24px;padding:0 10px;border:none;border-radius:12px;background:{{ dbChipDbs }};color:#c9cbd1;font-size:11px;cursor:pointer">Databases</button><button onClick="{{ dbViewProcs }}" style="height:24px;padding:0 10px;border:none;border-radius:12px;background:{{ dbChipProcs }};color:#c9cbd1;font-size:11px;cursor:pointer">Connections</button><button onClick="{{ dbViewQuery }}" style="height:24px;padding:0 10px;border:none;border-radius:12px;background:{{ dbChipQuery }};color:#c9cbd1;font-size:11px;cursor:pointer">Query</button>
+                </div>
+                <sc-if value="{{ dbIsDbs }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:column;gap:2px;margin-top:6px">
+                    <sc-for list="{{ dbList }}" as="d" hint-placeholder-count="3">
+                      <button onClick="{{ d.open }}" style="display:flex;align-items:center;gap:10px;width:100%;height:30px;padding:0 10px;border:none;border-radius:6px;background:{{ d.bg }};color:#e6e7ea;font-size:13px;cursor:pointer;text-align:left" style-hover="background:#1b1c20">
+                        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.name }}</span>
+                        <span style="font-family:'Geist Mono',monospace;font-size:11px;color:#8b8f98">{{ d.size }}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ dbHasSel }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#8b8f98">Tables in {{ dbSel }}</div></sc-if>
+              <sc-if value="{{ dbTablesGrid.has }}" hint-placeholder-val="{{ false }}">
+                <div style="overflow-x:auto;border:1px solid #222429;border-radius:8px;margin:6px 0 8px">
+                  <div style="min-width:{{ dbTablesGrid.minW }}">
+                    <div style="display:grid;grid-template-columns:{{ dbTablesGrid.tpl }};gap:10px;padding:7px 10px;font-size:10px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:#6f737c;border-bottom:1px solid #222429;background:#0f1013">
+                      <sc-for list="{{ dbTablesGrid.cols }}" as="c"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.c }}</span></sc-for>
+                    </div>
+                    <sc-for list="{{ dbTablesGrid.rows }}" as="r" hint-placeholder-count="3">
+                      <div style="display:grid;grid-template-columns:{{ dbTablesGrid.tpl }};gap:10px;padding:6px 10px;border-bottom:1px solid #1a1c20;font-family:'Geist Mono',monospace;font-size:11px;color:#c9cbd1">
+                        <sc-for list="{{ r.cells }}" as="x"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ x.v }}">{{ x.v }}</span></sc-for>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="font-size:11px;color:#6f737c;padding:0 2px 6px">{{ dbTablesGrid.note }}</div>
+              </sc-if>
+                </sc-if>
+                <sc-if value="{{ dbIsProcs }}" hint-placeholder-val="{{ false }}">
+              <sc-if value="{{ dbProcsGrid.has }}" hint-placeholder-val="{{ false }}">
+                <div style="overflow-x:auto;border:1px solid #222429;border-radius:8px;margin:6px 0 8px">
+                  <div style="min-width:{{ dbProcsGrid.minW }}">
+                    <div style="display:grid;grid-template-columns:{{ dbProcsGrid.tpl }};gap:10px;padding:7px 10px;font-size:10px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:#6f737c;border-bottom:1px solid #222429;background:#0f1013">
+                      <sc-for list="{{ dbProcsGrid.cols }}" as="c"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.c }}</span></sc-for>
+                    </div>
+                    <sc-for list="{{ dbProcsGrid.rows }}" as="r" hint-placeholder-count="3">
+                      <div style="display:grid;grid-template-columns:{{ dbProcsGrid.tpl }};gap:10px;padding:6px 10px;border-bottom:1px solid #1a1c20;font-family:'Geist Mono',monospace;font-size:11px;color:#c9cbd1">
+                        <sc-for list="{{ r.cells }}" as="x"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ x.v }}">{{ x.v }}</span></sc-for>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="font-size:11px;color:#6f737c;padding:0 2px 6px">{{ dbProcsGrid.note }}</div>
+              </sc-if></sc-if>
+                <sc-if value="{{ dbIsQuery }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;align-items:center;gap:8px;margin:8px 0 6px;font-size:12px;color:#8b8f98">Database
+                    <input value="{{ dbSel }}" onChange="{{ onDbSel }}" placeholder="(default)" spellCheck="false" style="width:180px;height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                  </div>
+                  <textarea value="{{ dbSql }}" onChange="{{ onDbSql }}" onKeyDown="{{ onDbSqlKey }}" rows="5" spellCheck="false" placeholder="SELECT * FROM users LIMIT 20" style="width:100%;padding:10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-family:'Geist Mono',monospace;font-size:12px;outline:none;resize:vertical" style-focus="border-color:#4a4d54"></textarea>
+                  <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+                    <button onClick="{{ dbRun }}" style="height:30px;padding:0 14px;border:none;border-radius:8px;background:{{ accent }};color:#0b0c0e;font-weight:500;font-size:12px;cursor:pointer">Run</button>
+                    <span style="font-size:11px;color:#6f737c">Ctrl+Enter · SELECT / SHOW / DESCRIBE / EXPLAIN only</span>
+                  </div>
+              <sc-if value="{{ dbQueryGrid.has }}" hint-placeholder-val="{{ false }}">
+                <div style="overflow-x:auto;border:1px solid #222429;border-radius:8px;margin:6px 0 8px">
+                  <div style="min-width:{{ dbQueryGrid.minW }}">
+                    <div style="display:grid;grid-template-columns:{{ dbQueryGrid.tpl }};gap:10px;padding:7px 10px;font-size:10px;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;color:#6f737c;border-bottom:1px solid #222429;background:#0f1013">
+                      <sc-for list="{{ dbQueryGrid.cols }}" as="c"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.c }}</span></sc-for>
+                    </div>
+                    <sc-for list="{{ dbQueryGrid.rows }}" as="r" hint-placeholder-count="3">
+                      <div style="display:grid;grid-template-columns:{{ dbQueryGrid.tpl }};gap:10px;padding:6px 10px;border-bottom:1px solid #1a1c20;font-family:'Geist Mono',monospace;font-size:11px;color:#c9cbd1">
+                        <sc-for list="{{ r.cells }}" as="x"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ x.v }}">{{ x.v }}</span></sc-for>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="font-size:11px;color:#6f737c;padding:0 2px 6px">{{ dbQueryGrid.note }}</div>
+              </sc-if>
+                </sc-if>
+              </sc-if>
+            </div>
           </aside>
         </sc-if>
 
@@ -515,6 +629,17 @@ input,select,button{font-family:inherit}
               <input value="{{ fPort }}" onChange="{{ onPort }}" spellCheck="false" style="height:36px;padding:0 12px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:13px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
             </label>
           </div>
+          <sc-if value="{{ isNewGroup }}" hint-placeholder-val="{{ false }}">
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:12px;color:#a4a8b0">New group name</span>
+              <input value="{{ fNewGroup }}" onChange="{{ onNewGroup }}" placeholder="e.g. Client – Acme" spellCheck="false" style="height:36px;padding:0 12px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:13px;outline:none" style-focus="border-color:#4a4d54">
+            </label>
+          </sc-if>
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:12px;color:#a4a8b0">Alternate address <span style="color:#6f737c">(optional, e.g. public IP)</span></span>
+            <input value="{{ fAlt }}" onChange="{{ onAlt }}" placeholder="203.0.113.10" spellCheck="false" style="height:36px;padding:0 12px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:13px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+            <span style="font-size:11px;color:#6f737c">Burrow tries the address above first, then this one, and uses whichever answers.</span>
+          </label>
           <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px">
             <label style="display:flex;flex-direction:column;gap:6px">
               <span style="font-size:12px;color:#a4a8b0">Username</span>
@@ -524,7 +649,7 @@ input,select,button{font-family:inherit}
               <span style="font-size:12px;color:#a4a8b0">Group</span>
               <select value="{{ fGroup }}" onChange="{{ onGroup }}" style="height:36px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:13px;outline:none">
                 <sc-for list="{{ groupOptions }}" as="o">
-                  <option value="{{ o.v }}">{{ o.v }}</option>
+                  <option value="{{ o.v }}">{{ o.label }}</option>
                 </sc-for>
               </select>
             </label>
@@ -571,16 +696,16 @@ class Component extends DCLogic {
   static GROUPS = ['Production', 'Staging', 'Homelab', 'Unsorted'];
 
   state = {
-    hosts: [], keys: [], forwards: [], snippets: [], fwdStatus: {}, probe: {},
+    hosts: [], keys: [], forwards: [], snippets: [], fwdStatus: {}, probe: {}, hist: {}, hostSys: {}, groupFilter: null,
     sessions: [], active: 'home', nav: 'hosts', query: '', quick: '',
-    modal: false, form: this.blank(), fwdForm: this.blankFwd(), snipForm: { name: '', cmd: '' }, snQuery: '', snipAddOpen: false, portQuery: '', cronForm: { sched: '', cmd: '' }, cronAddOpen: false, svcQuery: '', svcFilter: 'running', svcBusy: {}, toast: null,
+    modal: false, form: this.blank(), fwdForm: this.blankFwd(), snipForm: { name: '', cmd: '' }, snQuery: '', snipAddOpen: false, portQuery: '', dbCreds: { user: '', pw: '' }, cronForm: { sched: '', cmd: '' }, cronAddOpen: false, svcQuery: '', svcFilter: 'running', svcBusy: {}, toast: null,
   };
   termRef = React.createRef();
   quickRef = React.createRef();
   _n = 0;
   rt = {}; // per-session runtime objects (xterm, websocket); not React state
 
-  blank() { return { id: null, label: '', host: '', port: '22', user: '', group: 'Unsorted', auth: 'key', key: '', pw: '', hasPw: false, error: '' }; }
+  blank() { return { id: null, label: '', host: '', altHost: '', port: '22', user: '', group: 'Unsorted', newGroup: '', auth: 'key', key: '', pw: '', hasPw: false, error: '' }; }
   blankFwd() { return { name: '', type: 'Local', localPort: '', remoteHost: '', remotePort: '', via: '' }; }
 
   // ---------- lifecycle ----------
@@ -650,6 +775,7 @@ class Component extends DCLogic {
   mutate(partial, cb) { this.setState(partial, () => { this.save(); cb && cb(); }); }
   async probe() {
     try { const p = await this.api('POST', '/api/probe', {}); this.setState({ probe: p }); } catch {}
+    try { this.setState({ hist: await this.api('GET', '/api/history') }); } catch {}
   }
   termTheme() {
     const accent = this.props.accent ?? '#5fd4a0';
@@ -689,7 +815,7 @@ class Component extends DCLogic {
     const existing = this.state.sessions.find(x => x.hostId === hostId && (x.status === 'connected' || x.status === 'connecting'));
     if (existing) return this.setState({ active: existing.id });
     const id = 's' + (++this._n);
-    const sess = { id, hostId, status: 'connecting', error: '', panel: null, sftp: { path: '', entries: [], error: '' }, ports: { rows: [], error: '', loading: false }, services: { rows: [], error: '', loading: false }, docker: { rows: [], error: '' }, cron: { raw: '', jobs: [], sys: [], timers: [], error: '', loading: false } };
+    const sess = { id, hostId, status: 'connecting', error: '', panel: null, sftp: { path: '', entries: [], error: '' }, ports: { rows: [], error: '', loading: false }, services: { rows: [], error: '', loading: false }, docker: { rows: [], error: '' }, cron: { raw: '', jobs: [], sys: [], timers: [], error: '', loading: false }, db: { detected: false, engines: [], engine: '', view: 'dbs', dbs: null, dbSel: '', tables: null, procs: null, qres: null, sql: 'SELECT 1', loading: false, error: '' } };
     this.setState(s => ({ sessions: [...s.sessions, sess], active: id }), () => this.connect(id));
   }
 
@@ -713,10 +839,27 @@ class Component extends DCLogic {
         else if (m.status === 'failed' || m.status === 'closed') {
           if (m.message) rt.term.writeln('\x1b[31m' + m.message + '\x1b[0m'); else if (m.status === 'closed') dim('Connection closed.');
           this.upd(id, () => ({ status: m.status, error: m.message || '' }));
+          this.setState(st => { const hs = { ...st.hostSys }; delete hs[x.hostId]; return { hostSys: hs }; });
         }
         else this.upd(id, () => ({ status: m.status }));
       }
       else if (m.type === 'services') this.upd(id, () => ({ services: { rows: m.rows || [], error: m.error || '', loading: false } }));
+      else if (m.type === 'db-info') {
+        this.upd(id, x => {
+          const engines = m.engines || []; const keep = engines.find(e => e.engine === x.db.engine && e.ok); const first = keep || engines.find(e => e.ok) || engines[0];
+          return { db: { ...x.db, detected: true, loading: false, engines, engine: first ? first.engine : '', error: m.error || '' } };
+        });
+        const c = this.sess(id); const ok = c && c.db.engines.find(e => e.engine === c.db.engine && e.ok); if (ok) this.dbLoad(id, 'dbs');
+      }
+      else if (m.type === 'db-result') {
+        this.upd(id, x => {
+          const d = { ...x.db, loading: false, error: m.error || '' };
+          const res = m.error ? null : { columns: m.columns || [], rows: m.rows || [], truncated: !!m.truncated };
+          if (m.kind === 'dbs' && res) d.dbs = res; else if (m.kind === 'tables' && res) d.tables = res; else if (m.kind === 'procs' && res) d.procs = res; else if (m.kind === 'query') d.qres = res;
+          return { db: d };
+        });
+      }
+      else if (m.type === 'sysinfo') this.setState(st => ({ hostSys: { ...st.hostSys, [x.hostId]: { users: m.users, sessions: m.sessions, uptimeSec: m.uptimeSec } } }));
       else if (m.type === 'cron') this.upd(id, () => ({ cron: { raw: m.raw || '', jobs: m.jobs || [], sys: m.sys || [], timers: m.timers || [], error: m.error || '', loading: false } }));
       else if (m.type === 'cron-result') { if (m.ok) { this.toast('Crontab updated'); this.setState({ cronAddOpen: false, cronForm: { sched: '', cmd: '' } }); } else this.toast(m.output); this.loadCron(id); }
       else if (m.type === 'docker') this.upd(id, () => ({ docker: { rows: m.rows || [], error: m.error || '' } }));
@@ -751,6 +894,7 @@ class Component extends DCLogic {
   }
   reconnect(id) { const rt = this.rt[id]; if (rt) rt.term.writeln(''); this.connect(id); }
   closeSession(id) {
+    const gone = this.sess(id); if (gone && !this.state.sessions.some(y => y.id !== id && y.hostId === gone.hostId && y.status === 'connected')) this.setState(st => { const hs = { ...st.hostSys }; delete hs[gone.hostId]; return { hostSys: hs }; });
     this.destroyRt(id);
     this.setState(s => {
       const i = s.sessions.findIndex(x => x.id === id);
@@ -759,6 +903,37 @@ class Component extends DCLogic {
       if (active === id) active = sessions[Math.min(i, sessions.length - 1)]?.id || 'home';
       return { sessions, active };
     });
+  }
+
+  dbSend(id, msg) { const rt = this.rt[id]; rt && this.wsSend(rt, msg); }
+  dbDetect(id) {
+    const c = this.state.dbCreds; const creds = c.user ? { mysql: { user: c.user, pw: c.pw }, postgres: { user: c.user, pw: c.pw } } : undefined;
+    this.upd(id, x => ({ db: { ...x.db, loading: true, error: '' } }));
+    this.dbSend(id, { type: 'db-detect', creds });
+  }
+  dbLoad(id, kind, extra) {
+    const x = this.sess(id); if (!x || !x.db.engine) return;
+    this.upd(id, y => ({ db: { ...y.db, loading: true, error: '' } }));
+    this.dbSend(id, { type: 'db-query', kind, engine: x.db.engine, ...extra });
+  }
+  dbSet(id, patch) { this.upd(id, x => ({ db: { ...x.db, ...patch } })); }
+  dbView(id, view) {
+    this.dbSet(id, { view });
+    if (view === 'procs') this.dbLoad(id, 'procs'); else if (view === 'dbs') this.dbLoad(id, 'dbs');
+  }
+  dbRunQuery(id) {
+    const x = this.sess(id); if (!x) return;
+    this.dbSet(id, { qres: null });
+    this.dbLoad(id, 'query', { sql: x.db.sql, db: x.db.dbSel || null });
+  }
+  dbGrid(res, loading) {
+    if (!res) return { has: false, cols: [], rows: [], tpl: '', minW: '0', note: '' };
+    const n = Math.max(res.columns.length, 1);
+    return {
+      has: true, cols: res.columns.map(c => ({ c })), rows: res.rows.map(r => ({ cells: res.columns.map((_, i) => ({ v: r[i] ?? '' })) })),
+      tpl: `repeat(${n}, minmax(90px, 1fr))`, minW: `${n * 100}px`,
+      note: `${res.rows.length} row${res.rows.length === 1 ? '' : 's'}${res.truncated ? ' (first 500 shown)' : ''}`,
+    };
   }
 
   loadCron(id) {
@@ -839,7 +1014,13 @@ class Component extends DCLogic {
     const f = this.state.form;
     if (!f.host.trim() || !f.user.trim()) return this.setState({ form: { ...f, error: 'Hostname and username are required.' } });
     if (f.auth === 'password' && !f.pw && !f.hasPw) return this.setState({ form: { ...f, error: 'Enter a password, or pick another auth method.' } });
-    const base = { name: f.label.trim() || f.host.trim(), addr: f.host.trim(), port: +f.port || 22, user: f.user.trim(), group: f.group, auth: f.auth, key: f.auth === 'key' ? f.key : '' };
+    let group = f.group;
+    if (group === '__new__') {
+      group = f.newGroup.trim().replace(/\s+/g, ' ');
+      if (!group) return this.setState({ form: { ...f, error: 'Enter a name for the new group.' } });
+      if (group.length > 40) return this.setState({ form: { ...f, error: 'Group name is too long (40 characters max).' } });
+    }
+    const base = { name: f.label.trim() || f.host.trim(), addr: f.host.trim(), altAddr: f.altHost.trim(), port: +f.port || 22, user: f.user.trim(), group, auth: f.auth, key: f.auth === 'key' ? f.key : '' };
     if (f.auth === 'password' && f.pw) base.pw = f.pw;
     const old = f.id && this.host(f.id);
     const h = { ...(old || { tags: [] }), ...base, id: old ? old.id : 'h' + Date.now() };
@@ -848,7 +1029,14 @@ class Component extends DCLogic {
   }
   editHost(id) {
     const h = this.host(id); if (!h) return;
-    this.setState({ modal: true, form: { id: h.id, label: h.name, host: h.addr, port: String(h.port), user: h.user, group: h.group, auth: h.auth, key: h.key || '', pw: '', hasPw: !!h.hasPw, error: '' } });
+    this.setState({ modal: true, form: { id: h.id, label: h.name, host: h.addr, altHost: h.altAddr || '', port: String(h.port), user: h.user, group: h.group, newGroup: '', auth: h.auth, key: h.key || '', pw: '', hasPw: !!h.hasPw, error: '' } });
+  }
+  renameGroup(name) {
+    const raw = window.prompt(`Rename group “${name}” to:`, name);
+    const next = raw && raw.trim().replace(/\s+/g, ' ');
+    if (!next || next === name) return;
+    if (next.length > 40) return this.toast('Group name is too long (40 characters max)');
+    this.mutate(s => ({ hosts: s.hosts.map(h => h.group === name ? { ...h, group: next } : h) }), () => this.toast(`Renamed to ${next}`));
   }
   deleteHost(id) {
     const h = this.host(id); if (!h) return;
@@ -913,12 +1101,22 @@ class Component extends DCLogic {
     const openIds = new Set(s.sessions.filter(x => x.status === 'connected' || x.status === 'connecting').map(x => x.hostId));
     const groupNames = [...new Set([...s.hosts.map(h => h.group)])];
     const mkHost = h => {
-      const p = s.probe[h.id];
+      const p = s.probe[h.id]; const hi = s.hist[h.id]; const sy = s.hostSys[h.id];
+      const upFmt = sec => { if (sec == null) return ''; const d = Math.floor(sec / 86400), hr = Math.floor(sec % 86400 / 3600); return d ? `${d}d ${hr}h` : `${hr}h ${Math.floor(sec % 3600 / 60)}m`; };
+      const barColor = { up: accent, warn: warn, down: err, none: '#23262b' };
+      const when = ts => new Date(ts).toTimeString().slice(0, 5);
       return {
+        bars: (hi ? hi.buckets : Array.from({ length: 48 }, () => ({ s: 'none' }))).map(b => ({
+          c: barColor[b.s],
+          t: b.s === 'none' ? 'No data' : `${when(b.from)} · ${b.s === 'up' ? 'up' : b.s === 'down' ? 'down' : 'partly down'} (${b.up}/${b.total} checks)${b.avg != null ? ' · avg ' + b.avg + ' ms' : ''}`,
+        })),
+        hasAlt: !!(p && p.online && p.alt), altText: p && p.alt ? 'via ' + p.addr : '',
+        hasSys: !!sy, sysText: sy ? [sy.users != null ? `${sy.users} user${sy.users === 1 ? '' : 's'} logged in` : '', sy.uptimeSec != null ? 'up ' + upFmt(sy.uptimeSec) : ''].filter(Boolean).join(' · ') : '',
+        uptimeText: hi && hi.n ? `${hi.uptime}% uptime` : 'collecting data…',
         ...h,
         dot: p ? (p.online ? accent : off) : off,
         endpoint: `${h.user}@${h.addr}${h.port !== 22 ? ':' + h.port : ''}`,
-        lat: p ? (p.online ? `${p.latency} ms` : 'Unreachable') : '…',
+        lat: p ? (p.online ? `${p.latency} ms${p.alt ? ' · alt' : ''}` : 'Unreachable') : '…',
         latColor: p && p.online ? '#8b8f98' : '#6f737c',
         isOpen: openIds.has(h.id),
         rowBg: cur && cur.hostId === h.id ? '#1e2024' : 'transparent',
@@ -930,17 +1128,26 @@ class Component extends DCLogic {
     };
     const q = s.query.trim().toLowerCase();
     const match = h => !q || [h.name, h.addr, h.user, h.group, ...(h.tags || [])].some(v => v.toLowerCase().includes(q));
-    const filteredGroups = groupNames.map(g => {
+    if (s.groupFilter && !groupNames.includes(s.groupFilter)) s.groupFilter = null;
+    const filteredGroups = groupNames.filter(g => !s.groupFilter || g === s.groupFilter).map(g => {
       const hosts = s.hosts.filter(h => h.group === g && match(h)).map(mkHost);
-      return { name: g, count: hosts.length, hosts };
+      return { name: g, count: hosts.length, hosts, rename: () => this.renameGroup(g) };
     }).filter(g => g.hosts.length);
     const online = s.hosts.filter(h => s.probe[h.id]?.online).length;
+    const fleet = Object.values(s.hist).reduce((a, hh) => { (hh.buckets || []).forEach(b => { if (b.total) { a.up += b.up; a.total += b.total; } }); return a; }, { up: 0, total: 0 });
+    const fleetPct = fleet.total ? Math.round(fleet.up / fleet.total * 1000) / 10 : null;
+    const sysList = Object.values(s.hostSys); const userSum = sysList.reduce((a, y) => a + (y.users || 0), 0);
+    const statTiles = [
+      { label: 'Overall uptime', value: fleetPct == null ? '—' : fleetPct + '%', color: fleetPct == null ? '#6f737c' : fleetPct >= 99 ? accent : fleetPct >= 95 ? warn : err, sub: fleetPct == null ? 'collecting data…' : `last 24h · ${s.hosts.length} host${s.hosts.length === 1 ? '' : 's'}` },
+      { label: 'Hosts up now', value: `${online}/${s.hosts.length}`, color: s.hosts.length && online === s.hosts.length ? accent : online ? warn : '#6f737c', sub: 'reachable on their SSH port' },
+      { label: 'Users logged in', value: sysList.length ? String(userSum) : '—', color: sysList.length ? '#e6e7ea' : '#6f737c', sub: sysList.length ? `across ${sysList.length} connected host${sysList.length === 1 ? '' : 's'} (includes you)` : 'connect to a host to read this' },
+    ];
     const running = s.forwards.filter(f => s.fwdStatus[f.id]?.state === 'listening').length;
 
     const navDefs = [['hosts', 'Hosts', s.hosts.length], ['sessions', 'Sessions', s.sessions.filter(x => x.status === 'connected').length], ['keys', 'Keys', s.keys.length], ['forwards', 'Port forwarding', running + ' on'], ['snippets', 'Snippets', s.snippets.length]];
     const navItems = navDefs.map(([k, label, count]) => {
       const on = isHome && s.nav === k;
-      return { label, count, bg: on ? '#1e2024' : 'transparent', color: on ? '#e6e7ea' : '#a4a8b0', go: () => this.setState({ nav: k, active: 'home' }) };
+      return { label, count, bg: on && !(k === 'hosts' && s.groupFilter) ? '#1e2024' : 'transparent', color: on ? '#e6e7ea' : '#a4a8b0', go: () => this.setState({ nav: k, active: 'home', groupFilter: null }) };
     });
 
     const statusMap = { connecting: ['Connecting…', warn], connected: ['Connected', accent], failed: ['Connection failed', err], closed: ['Disconnected', '#8b8f98'] };
@@ -964,6 +1171,7 @@ class Component extends DCLogic {
       if (p === 'ports' && panel !== 'ports' && cur.status === 'connected') this.loadPorts(cur.id);
       if (p === 'services' && panel !== 'services' && cur.status === 'connected') this.loadServices(cur.id);
       if (p === 'cron' && panel !== 'cron' && cur.status === 'connected') this.loadCron(cur.id);
+      if (p === 'db' && panel !== 'db' && cur.status === 'connected' && !cur.db.detected) this.dbDetect(cur.id);
     };
     const live = cur && (cur.status === 'connected' || cur.status === 'connecting');
     const sq = s.snQuery.trim().toLowerCase();
@@ -995,7 +1203,13 @@ class Component extends DCLogic {
       onQuick: e => this.setState({ quick: e.target.value }),
       onQuickKey: e => { if (e.key === 'Enter') this.quickConnect(); if (e.key === 'Escape') e.target.blur(); },
       navItems,
-      sidebarGroups: groupNames.map(g => ({ name: g, hosts: s.hosts.filter(h => h.group === g).map(mkHost) })),
+      sidebarGroups: groupNames.map(g => {
+        const on = isHome && s.nav === 'hosts' && s.groupFilter === g;
+        return { name: g, count: s.hosts.filter(h => h.group === g).length, hosts: s.hosts.filter(h => h.group === g).map(mkHost),
+          bg: on ? '#1e2024' : 'transparent', color: on ? '#e6e7ea' : '#6f737c',
+          pick: () => this.setState({ nav: 'hosts', active: 'home', groupFilter: on ? null : g, query: '' }) };
+      }),
+      hostsTitle: s.groupFilter || 'Hosts', hasGroupFilter: !!s.groupFilter, clearGroup: () => this.setState({ groupFilter: null }),
       tabs,
       homeBg: isHome ? '#0e0f11' : 'transparent', homeColor: isHome ? '#e6e7ea' : '#8b8f98', homeShadow: isHome ? `inset 0 -2px 0 ${accent}` : 'none',
       goHome: () => this.setState({ active: 'home' }),
@@ -1020,7 +1234,7 @@ class Component extends DCLogic {
       }),
       query: s.query, onQuery: e => this.setState({ query: e.target.value }),
       hostSummary: `${s.hosts.length} hosts · ${online} reachable`,
-      filteredGroups, noResults: !filteredGroups.length,
+      statTiles, filteredGroups, noResults: !filteredGroups.length,
       emptyMsg: q ? `No hosts match “${s.query}”.` : 'No hosts yet. Click New host, or type user@host in the box at the top left.',
       keys, generateKey: () => this.generateKey(),
       forwards, hostOpts, hasHosts: s.hosts.length > 0,
@@ -1038,7 +1252,33 @@ class Component extends DCLogic {
       statusColor: cur ? statusMap[cur.status][1] : '#8b8f98',
       errorText: cur?.error || '',
       sftpBg: panel === 'sftp' ? '#24262b' : 'transparent', snipBg: panel === 'snippets' ? '#24262b' : 'transparent',
-      toggleSftp: togglePanel('sftp'), toggleCron: togglePanel('cron'), cronBg: panel === 'cron' ? '#24262b' : 'transparent', panelCron: panel === 'cron',
+      toggleSftp: togglePanel('sftp'), toggleDb: togglePanel('db'), dbBg: panel === 'db' ? '#24262b' : 'transparent', panelDb: panel === 'db',
+      ...(() => {
+        const d = cur?.db; const none = this.dbGrid(null);
+        if (!d) return { dbEngines: [], dbLoading: false, dbHasError: false, dbError: '', dbNeedLogin: false, dbReady: false, dbIsDbs: false, dbIsProcs: false, dbIsQuery: false, dbList: [], dbHasSel: false, dbSel: '', dbSql: '', dbTablesGrid: none, dbProcsGrid: none, dbQueryGrid: none, dbChipDbs: '', dbChipProcs: '', dbChipQuery: '' };
+        const eng = d.engines.find(e => e.engine === d.engine);
+        const nameCol = d.dbs ? d.dbs.columns.indexOf('name') : -1;
+        return {
+          dbEngines: d.engines.map(e => ({ label: e.label, sub: e.ok ? 'v' + e.version + ' · ' + e.via : 'no login', bg: e.engine === d.engine ? '#24262b' : 'transparent',
+            pick: () => { this.dbSet(cur.id, { engine: e.engine, dbs: null, tables: null, procs: null, qres: null, dbSel: '', error: '' }); if (e.ok) setTimeout(() => this.dbLoad(cur.id, 'dbs'), 0); } })),
+          dbLoading: d.loading, dbHasError: !!(d.error || (eng && !eng.ok && eng.error)), dbError: d.error || (eng && !eng.ok ? eng.error : ''),
+          dbNeedLogin: !!eng && !eng.ok, dbReady: !!eng && eng.ok,
+          dbIsDbs: d.view === 'dbs', dbIsProcs: d.view === 'procs', dbIsQuery: d.view === 'query',
+          dbChipDbs: d.view === 'dbs' ? '#24262b' : 'transparent', dbChipProcs: d.view === 'procs' ? '#24262b' : 'transparent', dbChipQuery: d.view === 'query' ? '#24262b' : 'transparent',
+          dbList: d.dbs && nameCol >= 0 ? d.dbs.rows.map(r => ({ name: r[nameCol], size: (r[1] ?? '') + ' MB', bg: r[nameCol] === d.dbSel ? '#1e2024' : 'transparent',
+            open: () => { this.dbSet(cur.id, { dbSel: r[nameCol], tables: null }); this.dbLoad(cur.id, 'tables', { db: r[nameCol] }); } })) : [],
+          dbHasSel: !!d.dbSel, dbSel: d.dbSel, dbSql: d.sql,
+          dbTablesGrid: this.dbGrid(d.tables), dbProcsGrid: this.dbGrid(d.procs), dbQueryGrid: this.dbGrid(d.qres),
+          onDbSel: e => this.dbSet(cur.id, { dbSel: e.target.value }), onDbSql: e => this.dbSet(cur.id, { sql: e.target.value }),
+          onDbSqlKey: e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this.dbRunQuery(cur.id); } },
+          dbRun: () => this.dbRunQuery(cur.id),
+          dbViewDbs: () => this.dbView(cur.id, 'dbs'), dbViewProcs: () => this.dbView(cur.id, 'procs'), dbViewQuery: () => this.dbView(cur.id, 'query'),
+        };
+      })(),
+      dbUser: s.dbCreds.user, dbPw: s.dbCreds.pw,
+      onDbUser: e => this.setState(st => ({ dbCreds: { ...st.dbCreds, user: e.target.value } })), onDbPw: e => this.setState(st => ({ dbCreds: { ...st.dbCreds, pw: e.target.value } })),
+      dbLogin: () => cur && this.dbDetect(cur.id),
+      dbReload: () => cur && (cur.db.detected ? (cur.db.engine && cur.db.engines.find(e => e.engine === cur.db.engine && e.ok) ? this.dbView(cur.id, cur.db.view === 'query' ? 'dbs' : cur.db.view) : this.dbDetect(cur.id)) : this.dbDetect(cur.id)), toggleCron: togglePanel('cron'), cronBg: panel === 'cron' ? '#24262b' : 'transparent', panelCron: panel === 'cron',
       cronReload: () => cur && this.loadCron(cur.id),
       cronAddOpen: s.cronAddOpen, toggleCronAdd: () => this.setState(st => ({ cronAddOpen: !st.cronAddOpen })),
       cronSched: s.cronForm.sched, cronCmd: s.cronForm.cmd,
@@ -1130,11 +1370,12 @@ class Component extends DCLogic {
       onDrop: e => { e.preventDefault(); cur && this.sftpUpload(cur.id, [...e.dataTransfer.files]); },
       showModal: s.modal, closeModal: () => this.setState({ modal: false }), stop: e => e.stopPropagation(),
       modalTitle: f.id ? 'Edit host' : 'New host',
-      fLabel: f.label, fHost: f.host, fPort: f.port, fUser: f.user, fGroup: f.group, fKey: f.key || (s.keys[0] ? s.keys[0].name : ''), fPw: f.pw,
+      fLabel: f.label, fHost: f.host, fAlt: f.altHost, onAlt: this.setForm('altHost'), fPort: f.port, fUser: f.user, fGroup: f.group, fKey: f.key || (s.keys[0] ? s.keys[0].name : ''), fPw: f.pw,
       pwPlaceholder: f.hasPw ? 'Leave blank to keep the saved password' : 'Stored in data/state.json on this machine',
       onLabel: this.setForm('label'), onHost: this.setForm('host'), onPort: this.setForm('port'), onUser: this.setForm('user'),
       onGroup: this.setForm('group'), onKeySel: this.setForm('key'), onPw: this.setForm('pw'),
-      groupOptions: [...new Set([...Component.GROUPS, ...groupNames])].map(v => ({ v })),
+      groupOptions: [...[...new Set([...Component.GROUPS, ...groupNames])].map(v => ({ v, label: v })), { v: '__new__', label: '+ New group…' }],
+      isNewGroup: f.group === '__new__', fNewGroup: f.newGroup, onNewGroup: this.setForm('newGroup'),
       noKeys: !s.keys.length,
       isKeyAuth: f.auth === 'key', isPwAuth: f.auth === 'password', isAgentAuth: f.auth === 'agent',
       authKeyBg: f.auth === 'key' ? '#24262b' : 'transparent', authPwBg: f.auth === 'password' ? '#24262b' : 'transparent', authAgentBg: f.auth === 'agent' ? '#24262b' : 'transparent',

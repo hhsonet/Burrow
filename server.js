@@ -9,6 +9,7 @@ const os = require('os');
 const crypto = require('crypto');
 const { Client, utils } = require('ssh2');
 const { WebSocketServer } = require('ws');
+const { createDb } = require('./db');
 
 const PORT = +process.env.PORT || 8765;
 const BIND = '127.0.0.1';
@@ -206,7 +207,8 @@ function parseServices(out) {
 
 // ---------- ws sessions ----------
 function onSocket(ws) {
-  let conn = null, stream = null, sftp = null, ending = false;
+  let conn = null, stream = null, sftp = null, ending = false, dbh = null, sysT = null;
+  const getDb = () => dbh || (dbh = createDb(cmd => new Promise((res, rej) => runCmd(conn, cmd, (e, o) => e ? rej(e) : res(o)))));
   const send = o => ws.readyState === 1 && ws.send(JSON.stringify(o));
   const log = (text, kind = 'dim') => send({ type: 'log', text, kind });
   const status = (s, message) => send({ type: 'status', status: s, message });
@@ -216,11 +218,24 @@ function onSocket(ws) {
     if (!conn) return cb(new Error('Not connected'));
     conn.sftp((err, s) => { if (err) return cb(err); sftp = s; s.on('close', () => { sftp = null; }); cb(null, s); });
   }
-  function end() { ending = true; try { stream && stream.end(); } catch {} try { conn && conn.end(); } catch {} }
+  function pollSys() {
+    if (!conn || !stream) return;
+    runCmd(conn, "who | awk '{print $1}' | sort -u | wc -l; who | wc -l; cut -d. -f1 /proc/uptime 2>/dev/null", (e, o) => {
+      if (e) return;
+      const [users, sessions, up] = o.trim().split('\n').map(Number);
+      send({ type: 'sysinfo', users: Number.isFinite(users) ? users : null, sessions: Number.isFinite(sessions) ? sessions : null, uptimeSec: Number.isFinite(up) ? up : null });
+    });
+  }
+  function end() { clearInterval(sysT); ending = true; try { stream && stream.end(); } catch {} try { conn && conn.end(); } catch {} }
 
   function connect(m) {
-    const h = state.hosts.find(x => x.id === m.hostId);
-    if (!h) return status('failed', 'Unknown host');
+    const h0 = state.hosts.find(x => x.id === m.hostId);
+    if (!h0) return status('failed', 'Unknown host');
+    if (h0.altAddr && !m._resolved) {
+      status('connecting'); log('Checking which address is reachable…');
+      return pickAddr(h0).then(r => { log(`Using ${r.addr}${r.alt ? ' (alternate address)' : ''}`, r.online ? 'dim' : 'warn'); connect({ ...m, _resolved: r.addr }); });
+    }
+    const h = { ...h0, addr: m._resolved || h0.addr };
     status('connecting');
     let made;
     try { made = newClient(h, log); } catch (e) { return status('failed', e.message); }
@@ -231,6 +246,7 @@ function onSocket(ws) {
         if (err) return status('failed', friendlyError(err));
         stream = s;
         status('connected');
+        pollSys(); sysT = setInterval(pollSys, 30000);
         s.on('data', d => ws.readyState === 1 && ws.send(d));
         s.stderr && s.stderr.on('data', d => ws.readyState === 1 && ws.send(d));
         s.on('close', () => { status('closed'); end(); });
@@ -316,6 +332,19 @@ function onSocket(ws) {
         });
         break;
       }
+      case 'db-detect': {
+        if (!conn || !stream) return send({ type: 'db-info', error: 'Not connected', engines: [] });
+        const c = m.creds && typeof m.creds === 'object' ? { mysql: m.creds.mysql, postgres: m.creds.postgres } : undefined;
+        getDb().detect(c).then(engines => send({ type: 'db-info', engines, error: engines.length ? '' : 'No mysql, mariadb or psql client found on this server' }))
+          .catch(e => send({ type: 'db-info', engines: [], error: friendlyError(e) }));
+        break;
+      }
+      case 'db-query': {
+        if (!conn || !stream) return send({ type: 'db-result', kind: m.kind, rid: m.rid, error: 'Not connected' });
+        getDb().handle({ kind: ['dbs', 'tables', 'procs', 'query'].includes(m.kind) ? m.kind : '', rid: m.rid, engine: m.engine, db: m.db, sql: m.sql })
+          .then(r => send({ type: 'db-result', ...r })).catch(e => send({ type: 'db-result', kind: m.kind, rid: m.rid, error: friendlyError(e) }));
+        break;
+      }
       case 'service-action': {
         const unit = String(m.unit || ''); const action = String(m.action || '');
         if (!conn || !stream) return send({ type: 'service-result', unit, action, ok: false, output: 'Not connected' });
@@ -397,11 +426,16 @@ function stopTunnel(id) {
   try { t.server && t.server.close(); } catch {} try { t.conn.end(); } catch {}
   delete fwdStatus[id];
 }
-function startTunnel(id) {
+async function startTunnel(id) {
+  const f0 = state.forwards.find(x => x.id === id); const h0 = f0 && state.hosts.find(x => x.id === f0.via);
+  const r = h0 ? await pickAddr(h0) : null;
+  return startTunnelInner(id, h0 && { ...h0, addr: r.addr });
+}
+function startTunnelInner(id, hOverride) {
   return new Promise(resolve => {
     stopTunnel(id);
     const f = state.forwards.find(x => x.id === id);
-    const h = f && state.hosts.find(x => x.id === f.via);
+    const h = hOverride || (f && state.hosts.find(x => x.id === f.via));
     if (!f) return resolve({ ok: false, error: 'Unknown forward' });
     if (!h) return resolve({ ok: false, error: 'Jump host no longer exists' });
     let made;
@@ -443,6 +477,52 @@ function probe(h) {
     s.setTimeout(2500, () => done(false)); s.on('connect', () => done(true)); s.on('error', () => done(false));
   });
 }
+
+// Picks the reachable address for a host: primary first, then the alternate one.
+async function pickAddr(h) {
+  const cands = [h.addr, ...(h.altAddr && h.altAddr !== h.addr ? [h.altAddr] : [])];
+  const rs = await Promise.all(cands.map(a => probe({ addr: a, port: h.port })));
+  const i = rs.findIndex(r => r.online);
+  return i < 0 ? { addr: h.addr, online: false, latency: null, alt: false } : { addr: cands[i], online: true, latency: rs[i].latency, alt: i > 0 };
+}
+
+// ---------- uptime history ----------
+// Probes every host once a minute while the server runs and keeps 24 h of results.
+const HIST_FILE = path.join(DATA, 'history.json');
+const HIST_MS = 24 * 3600 * 1000, BUCKET_MS = 30 * 60 * 1000, BUCKETS = 48;
+let hist = {}; // hostId -> [[timestamp, latencyMs | null], ...]
+try { hist = JSON.parse(fs.readFileSync(HIST_FILE, 'utf8')); } catch {}
+function saveHist() { try { fs.writeFileSync(HIST_FILE + '.tmp', JSON.stringify(hist)); fs.renameSync(HIST_FILE + '.tmp', HIST_FILE); } catch {} }
+async function recordProbes() {
+  const now = Date.now(); const ids = new Set(state.hosts.map(h => h.id));
+  await Promise.all(state.hosts.map(async h => {
+    const r = await pickAddr(h);
+    (hist[h.id] ||= []).push([now, r.online ? r.latency : null]);
+  }));
+  for (const id of Object.keys(hist)) {
+    if (!ids.has(id)) { delete hist[id]; continue; }
+    hist[id] = hist[id].filter(p => now - p[0] < HIST_MS);
+  }
+}
+function summarize() {
+  const now = Date.now(); const out = {};
+  for (const h of state.hosts) {
+    const pts = hist[h.id] || [];
+    const buckets = [];
+    for (let i = 0; i < BUCKETS; i++) {
+      const from = now - (BUCKETS - i) * BUCKET_MS, to = from + BUCKET_MS;
+      const inB = pts.filter(p => p[0] >= from && p[0] < to);
+      if (!inB.length) { buckets.push({ s: 'none', from }); continue; }
+      const down = inB.filter(p => p[1] == null).length;
+      const lat = inB.filter(p => p[1] != null).map(p => p[1]);
+      buckets.push({ s: down === 0 ? 'up' : down === inB.length ? 'down' : 'warn', from, up: inB.length - down, total: inB.length, avg: lat.length ? Math.round(lat.reduce((a, b) => a + b, 0) / lat.length) : null });
+    }
+    const up = pts.filter(p => p[1] != null).length;
+    out[h.id] = { buckets, n: pts.length, uptime: pts.length ? Math.round(up / pts.length * 1000) / 10 : null };
+  }
+  return out;
+}
+recordProbes(); setInterval(recordProbes, 60000); setInterval(saveHist, 5 * 60000);
 
 // ---------- http ----------
 const STATIC = {
@@ -490,7 +570,7 @@ const server = http.createServer(async (req, res) => {
         const old = new Map(state.hosts.map(h => [h.id, h]));
         state.hosts = b.hosts.map(h => {
           const o = old.get(h.id);
-          const clean = { id: String(h.id), name: String(h.name || h.addr), addr: String(h.addr), port: +h.port || 22, user: String(h.user), group: String(h.group || 'Unsorted'), tags: Array.isArray(h.tags) ? h.tags.map(String) : [], auth: ['key', 'password', 'agent'].includes(h.auth) ? h.auth : 'key', key: String(h.key || '') };
+          const clean = { id: String(h.id), name: String(h.name || h.addr), addr: String(h.addr), port: +h.port || 22, altAddr: String(h.altAddr || '').trim(), user: String(h.user), group: String(h.group || 'Unsorted'), tags: Array.isArray(h.tags) ? h.tags.map(String) : [], auth: ['key', 'password', 'agent'].includes(h.auth) ? h.auth : 'key', key: String(h.key || '') };
           const pw = h.pw || (o && o.pw);
           if (clean.auth === 'password' && pw) clean.pw = pw;
           return clean;
@@ -523,8 +603,9 @@ const server = http.createServer(async (req, res) => {
       }
       return json(res, 200, { pub });
     }
+    if (req.method === 'GET' && p === '/api/history') return json(res, 200, summarize());
     if (req.method === 'POST' && p === '/api/probe') {
-      const out = {}; await Promise.all(state.hosts.map(async h => { out[h.id] = await probe(h); }));
+      const out = {}; await Promise.all(state.hosts.map(async h => { const r = await pickAddr(h); out[h.id] = { online: r.online, latency: r.latency, addr: r.addr, alt: r.alt }; }));
       return json(res, 200, out);
     }
     if (req.method === 'POST' && (m = p.match(/^\/api\/forwards\/([^/]+)\/(start|stop)$/))) {
@@ -542,4 +623,4 @@ server.on('upgrade', (req, sock, head) => {
 });
 
 server.listen(PORT, BIND, () => console.log(`Burrow running at http://localhost:${PORT}`));
-process.on('SIGINT', () => { for (const id of [...tunnels.keys()]) stopTunnel(id); process.exit(0); });
+process.on('SIGINT', () => { saveHist(); for (const id of [...tunnels.keys()]) stopTunnel(id); process.exit(0); });
