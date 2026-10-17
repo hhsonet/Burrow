@@ -11,11 +11,81 @@
       "auth": "password",
       "key": "",
       "pw": "@igpu#UIU103"
+    },
+    {
+      "id": "h1792261648470",
+      "name": "IAR-GPU",
+      "addr": "103.109.52.30",
+      "port": 22,
+      "user": "iargpu",
+      "group": "Unsorted",
+      "tags": [],
+      "auth": "password",
+      "key": "",
+      "pw": "@uiugpuIAR102"
     }
   ],
   "forwards": [],
-  "snippets": [],
+  "snippets": [
+    {
+      "name": "Uptime",
+      "cmd": "uptime"
+    },
+    {
+      "name": "Memory",
+      "cmd": "free -h"
+    },
+    {
+      "name": "Disk usage",
+      "cmd": "df -h"
+    },
+    {
+      "name": "Top by memory",
+      "cmd": "ps aux --sort=-%mem | head"
+    },
+    {
+      "name": "Listening ports",
+      "cmd": "ss -tlnp"
+    },
+    {
+      "name": "Established connections",
+      "cmd": "ss -tn state established"
+    },
+    {
+      "name": "IP addresses",
+      "cmd": "ip -br a"
+    },
+    {
+      "name": "Failed services",
+      "cmd": "systemctl --failed"
+    },
+    {
+      "name": "Recent errors",
+      "cmd": "journalctl -p err -n 50 --no-pager"
+    },
+    {
+      "name": "Running containers",
+      "cmd": "docker ps"
+    },
+    {
+      "name": "Docker stats",
+      "cmd": "docker stats --no-stream"
+    },
+    {
+      "name": "Who is logged in",
+      "cmd": "w"
+    },
+    {
+      "name": "Last logins",
+      "cmd": "last -n 10"
+    },
+    {
+      "name": "Biggest folders",
+      "cmd": "du -sh * | sort -h | tail"
+    }
+  ],
   "known": {
-    "10.100.110.103:22": "SHA256:2QNybfjyHOeS/zMrW5IlCa7TdnnPvi9EAev77k2JlsA"
+    "10.100.110.103:22": "SHA256:2QNybfjyHOeS/zMrW5IlCa7TdnnPvi9EAev77k2JlsA",
+    "103.109.52.30:22": "SHA256:Kt9i0Yz1r+/7xnP8Oe3iPgEkXQLlWm5qKhuPdap9T5Y"
   }
 }

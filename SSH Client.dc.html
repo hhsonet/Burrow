@@ -231,6 +231,7 @@ input,select,button{font-family:inherit}
                 <input value="{{ snName }}" onChange="{{ onSnName }}" placeholder="Name" spellCheck="false" style="height:32px;width:180px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
                 <input value="{{ snCmd }}" onChange="{{ onSnCmd }}" placeholder="Command" spellCheck="false" style="height:32px;width:320px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
                 <button onClick="{{ addSnippet }}" style="height:32px;padding:0 12px;border:none;border-radius:8px;background:{{ accent }};color:#0b0c0e;font-weight:500;font-size:12px;cursor:pointer">Add snippet</button>
+                <input value="{{ snQuery }}" onChange="{{ onSnQuery }}" placeholder="Search snippets" spellCheck="false" style="margin-left:auto;width:220px;height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
               </div>
               <div style="border:1px solid #222429;border-radius:10px;overflow:hidden">
                 <sc-for list="{{ snippets }}" as="sn" hint-placeholder-count="5">
@@ -260,14 +261,18 @@ input,select,button{font-family:inherit}
             </div>
             <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
               <button onClick="{{ toggleSftp }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ sftpBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Files</button>
+              <button onClick="{{ toggleCron }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ cronBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Cron</button>
+              <button onClick="{{ toggleServices }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ servicesBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Services</button>
+              <button onClick="{{ togglePorts }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ portsBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Ports</button>
               <button onClick="{{ toggleSnip }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ snipBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Snippets</button>
               <span style="width:1px;height:16px;background:#2a2c31;margin:0 6px"></span>
               <button onClick="{{ primaryAction }}" style="height:28px;padding:0 10px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="border-color:#3a3d43;color:#e6e7ea">{{ primaryLabel }}</button>
             </div>
           </div>
-          <div style="flex:1;position:relative;min-height:0">
+          <div style="flex:2;position:relative;min-height:0">
             <div ref="{{ termRef }}" style="position:absolute;inset:0;overflow:hidden"></div>
           </div>
+          <div style="flex:1;min-height:0"></div>
           <sc-if value="{{ showRetry }}" hint-placeholder-val="{{ false }}">
             <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid #1c1e22;flex-shrink:0">
               <span style="flex:1;min-width:0;font-size:12px;color:{{ statusColor }}">{{ errorText }}</span>
@@ -308,13 +313,173 @@ input,select,button{font-family:inherit}
           </aside>
         </sc-if>
 
+        <sc-if value="{{ panelCron }}" hint-placeholder-val="{{ false }}">
+          <aside style="width:min(440px,46%);min-width:300px;flex-shrink:1;border-left:1px solid #1f2125;background:#121316;display:flex;flex-direction:column;min-height:0">
+            <div style="display:flex;align-items:center;height:48px;padding:0 8px 0 16px;border-bottom:1px solid #1f2125;flex-shrink:0">
+              <span style="font-weight:500">Cron jobs</span>
+              <span style="flex:1"></span>
+              <button onClick="{{ toggleCronAdd }}" title="New job" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:{{ accent }};font-size:18px;line-height:1;cursor:pointer" style-hover="background:#1e2024">+</button>
+              <button onClick="{{ cronReload }}" title="Refresh" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:#8b8f98;font-size:14px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">↻</button>
+              <button onClick="{{ closePanel }}" title="Close panel" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:#8b8f98;font-size:15px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">×</button>
+            </div>
+            <sc-if value="{{ cronAddOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:6px;padding:12px;border-bottom:1px solid #1f2125;flex-shrink:0">
+                <input value="{{ cronSched }}" onChange="{{ onCronSched }}" placeholder="Schedule, e.g. */5 * * * *  or  @daily" spellCheck="false" style="width:100%;height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                <input value="{{ cronCmd }}" onChange="{{ onCronCmd }}" placeholder="Command, e.g. /usr/local/bin/backup.sh" spellCheck="false" style="width:100%;height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                <button onClick="{{ addCron }}" style="height:30px;border:none;border-radius:8px;background:{{ accent }};color:#0b0c0e;font-weight:500;font-size:12px;cursor:pointer">Add to your crontab</button>
+              </div>
+            </sc-if>
+            <div style="flex:1;overflow:auto;padding:0 8px 8px">
+              <div style="padding:14px 8px 6px;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#8b8f98">Your crontab</div>
+              <sc-if value="{{ noUserJobs }}" hint-placeholder-val="{{ false }}"><div style="padding:6px 8px;color:#6f737c;font-size:12px">No jobs in your crontab.</div></sc-if>
+              <sc-for list="{{ cronJobs }}" as="j" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:6px;opacity:{{ j.opacity }}" style-hover="background:#1b1c20">
+                  <button onClick="{{ j.toggle }}" title="Enable / disable" style="width:30px;height:18px;padding:2px;border:none;border-radius:9px;background:{{ j.track }};cursor:pointer;flex-shrink:0;display:flex"><span style="width:14px;height:14px;border-radius:50%;background:#e6e7ea;transform:translateX({{ j.knob }})"></span></button>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-family:'Geist Mono',monospace;font-size:12px;color:#e6e7ea;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ j.cmd }}</div>
+                    <div style="font-size:11px;color:#8b8f98;margin-top:2px"><span style="font-family:'Geist Mono',monospace">{{ j.schedule }}</span> · {{ j.human }}</div>
+                  </div>
+                  <button onClick="{{ j.del }}" title="Delete job" style="width:24px;height:24px;border:none;border-radius:6px;background:transparent;color:#6f737c;cursor:pointer;font-size:15px" style-hover="background:#24262b;color:#f07a6a">×</button>
+                </div>
+              </sc-for>
+              <sc-if value="{{ hasSysJobs }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:14px 8px 6px;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#8b8f98">System cron (read-only)</div>
+                <sc-for list="{{ sysJobs }}" as="j" hint-placeholder-count="2">
+                  <div style="padding:8px">
+                    <div style="font-family:'Geist Mono',monospace;font-size:12px;color:#c9cbd1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ j.cmd }}</div>
+                    <div style="font-size:11px;color:#8b8f98;margin-top:2px"><span style="font-family:'Geist Mono',monospace">{{ j.schedule }}</span> · {{ j.human }} · as {{ j.user }} · {{ j.file }}</div>
+                  </div>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{ hasTimers }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:14px 8px 6px;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#8b8f98">Systemd timers (read-only)</div>
+                <sc-for list="{{ cronTimers }}" as="t" hint-placeholder-count="2">
+                  <div style="padding:8px">
+                    <div style="font-size:12px;color:#c9cbd1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.unit }}</div>
+                    <div style="font-size:11px;color:#8b8f98;margin-top:2px">next {{ t.next }} · runs {{ t.runs }}</div>
+                  </div>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{ hasCronError }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 8px;color:#f07a6a;font-size:12px">{{ cronError }}</div></sc-if>
+              <sc-if value="{{ cronLoading }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 8px;color:#6f737c;font-size:12px">Loading…</div></sc-if>
+              <div style="padding:14px 8px 4px;font-size:11px;color:#6f737c">Changes rewrite your user crontab. A backup is kept in ~/.burrow-crontab.bak on the server.</div>
+            </div>
+          </aside>
+        </sc-if>
+
+        <sc-if value="{{ panelServices }}" hint-placeholder-val="{{ false }}">
+          <aside style="width:min(400px,44%);min-width:280px;flex-shrink:1;border-left:1px solid #1f2125;background:#121316;display:flex;flex-direction:column;min-height:0">
+            <div style="display:flex;align-items:center;height:48px;padding:0 8px 0 16px;border-bottom:1px solid #1f2125;flex-shrink:0">
+              <span style="font-weight:500">Services</span>
+              <span style="flex:1"></span>
+              <button onClick="{{ servicesReload }}" title="Refresh" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:#8b8f98;font-size:14px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">↻</button>
+              <button onClick="{{ closePanel }}" title="Close panel" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:#8b8f98;font-size:15px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">×</button>
+            </div>
+            <div style="padding:10px 12px 6px;flex-shrink:0">
+              <input value="{{ svcQuery }}" onChange="{{ onSvcQuery }}" placeholder="Search services" spellCheck="false" style="width:100%;height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <button onClick="{{ svcRunning }}" style="height:24px;padding:0 10px;border:none;border-radius:12px;background:{{ chipRunningBg }};color:#c9cbd1;font-size:11px;cursor:pointer">Running</button><button onClick="{{ svcFailed }}" style="height:24px;padding:0 10px;border:none;border-radius:12px;background:{{ chipFailedBg }};color:#c9cbd1;font-size:11px;cursor:pointer">Failed</button><button onClick="{{ svcAll }}" style="height:24px;padding:0 10px;border:none;border-radius:12px;background:{{ chipAllBg }};color:#c9cbd1;font-size:11px;cursor:pointer">All</button>
+              </div>
+            </div>
+            <div style="padding:2px 16px 8px;font-size:11px;color:#6f737c;flex-shrink:0">{{ servicesSummary }}</div>
+            <div style="flex:1;overflow:auto;padding:0 8px 8px">
+              <sc-if value="{{ hasDbRows }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:6px 8px;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#8b8f98">Databases</div>
+                <sc-for list="{{ dbRows }}" as="s" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 8px;border-radius:6px" style-hover="background:#1b1c20">
+                  <span style="width:8px;height:8px;border-radius:50%;background:{{ s.color }};flex-shrink:0"></span>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:13px;color:#e6e7ea;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.name }}</div>
+                    <div style="font-size:11px;color:#6f737c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.state }}</div>
+                  </div>
+                  <button onClick="{{ s.restart }}" title="Restart" style="height:24px;padding:0 8px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#c9cbd1;font-size:11px;cursor:pointer;opacity:{{ s.busyOpacity }}" style-hover="color:#e6e7ea;border-color:#3a3d43">Restart</button>
+                  <button onClick="{{ s.toggle }}" style="height:24px;padding:0 8px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#c9cbd1;font-size:11px;cursor:pointer;opacity:{{ s.busyOpacity }}" style-hover="color:#e6e7ea;border-color:#3a3d43">{{ s.toggleLabel }}</button>
+                </div>
+                </sc-for>
+                <div style="padding:14px 8px 6px;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#8b8f98">Services</div>
+              </sc-if>
+              <sc-for list="{{ serviceRows }}" as="s" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 8px;border-radius:6px" style-hover="background:#1b1c20">
+                  <span style="width:8px;height:8px;border-radius:50%;background:{{ s.color }};flex-shrink:0"></span>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:13px;color:#e6e7ea;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.name }}</div>
+                    <div style="font-size:11px;color:#6f737c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.state }}</div>
+                  </div>
+                  <button onClick="{{ s.restart }}" title="Restart" style="height:24px;padding:0 8px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#c9cbd1;font-size:11px;cursor:pointer;opacity:{{ s.busyOpacity }}" style-hover="color:#e6e7ea;border-color:#3a3d43">Restart</button>
+                  <button onClick="{{ s.toggle }}" style="height:24px;padding:0 8px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#c9cbd1;font-size:11px;cursor:pointer;opacity:{{ s.busyOpacity }}" style-hover="color:#e6e7ea;border-color:#3a3d43">{{ s.toggleLabel }}</button>
+                </div>
+              </sc-for>
+              <sc-if value="{{ showDocker }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:14px 8px 6px;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#8b8f98">Docker containers</div>
+                <sc-for list="{{ dockerRows }}" as="c" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 8px;border-radius:6px" style-hover="background:#1b1c20">
+                  <span style="width:8px;height:8px;border-radius:50%;background:{{ c.color }};flex-shrink:0"></span>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:13px;color:#e6e7ea;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</div>
+                    <div style="font-size:11px;color:#6f737c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.info }}</div>
+                  </div>
+                  <button onClick="{{ c.restart }}" title="Restart" style="height:24px;padding:0 8px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#c9cbd1;font-size:11px;cursor:pointer;opacity:{{ c.busyOpacity }}" style-hover="color:#e6e7ea;border-color:#3a3d43">Restart</button>
+                  <button onClick="{{ c.toggle }}" style="height:24px;padding:0 8px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#c9cbd1;font-size:11px;cursor:pointer;opacity:{{ c.busyOpacity }}" style-hover="color:#e6e7ea;border-color:#3a3d43">{{ c.toggleLabel }}</button>
+                </div>
+                </sc-for>
+                <sc-if value="{{ hasDockerError }}" hint-placeholder-val="{{ false }}"><div style="padding:6px 8px;color:#e8b85a;font-size:12px">{{ dockerError }}</div></sc-if>
+              </sc-if>
+              <sc-if value="{{ hasServicesError }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 8px;color:#f07a6a;font-size:12px">{{ servicesError }}</div></sc-if>
+              <sc-if value="{{ servicesLoading }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 8px;color:#6f737c;font-size:12px">Loading…</div></sc-if>
+            </div>
+          </aside>
+        </sc-if>
+
+        <sc-if value="{{ panelPorts }}" hint-placeholder-val="{{ false }}">
+          <aside style="width:min(340px,38%);min-width:240px;flex-shrink:1;border-left:1px solid #1f2125;background:#121316;display:flex;flex-direction:column;min-height:0">
+            <div style="display:flex;align-items:center;height:48px;padding:0 8px 0 16px;border-bottom:1px solid #1f2125;flex-shrink:0">
+              <span style="font-weight:500">Open ports</span>
+              <span style="flex:1"></span>
+              <button onClick="{{ portsReload }}" title="Refresh" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:#8b8f98;font-size:14px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">↻</button>
+              <button onClick="{{ closePanel }}" title="Close panel" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:#8b8f98;font-size:15px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">×</button>
+            </div>
+            <div style="padding:10px 12px 6px;flex-shrink:0">
+              <input value="{{ portQuery }}" onChange="{{ onPortQuery }}" placeholder="Filter by port, process, address" spellCheck="false" style="width:100%;height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+            </div>
+            <div style="padding:2px 16px 8px;font-size:11px;color:#6f737c;flex-shrink:0">{{ portsSummary }}</div>
+            <div style="flex:1;overflow:auto;padding:0 8px 8px">
+              <sc-for list="{{ portRows }}" as="p" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:6px" style-hover="background:#1b1c20">
+                  <span style="width:52px;font-family:'Geist Mono',monospace;font-size:13px;color:#e6e7ea">{{ p.port }}</span>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:12px;color:#c9cbd1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.label }}</div>
+                    <div style="font-family:'Geist Mono',monospace;font-size:11px;color:#6f737c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.addr }}</div>
+                  </div>
+                  <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#1e2024;color:#a4a8b0">{{ p.proto }}</span>
+                  <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#1e2024;color:{{ p.expColor }}">{{ p.exposure }}</span>
+                </div>
+              </sc-for>
+              <sc-if value="{{ hasPortsError }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 8px;color:#f07a6a;font-size:12px">{{ portsError }}</div></sc-if>
+              <sc-if value="{{ portsLoading }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 8px;color:#6f737c;font-size:12px">Loading…</div></sc-if>
+            </div>
+          </aside>
+        </sc-if>
+
         <sc-if value="{{ panelSnippets }}" hint-placeholder-val="{{ false }}">
           <aside style="width:min(300px,34%);min-width:220px;flex-shrink:1;border-left:1px solid #1f2125;background:#121316;display:flex;flex-direction:column;min-height:0">
             <div style="display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 8px 0 16px;border-bottom:1px solid #1f2125;flex-shrink:0">
               <span style="font-weight:500">Snippets</span>
+              <span style="flex:1"></span>
+              <button onClick="{{ toggleSnipAdd }}" title="New snippet" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:{{ accent }};font-size:18px;line-height:1;cursor:pointer" style-hover="background:#1e2024">+</button>
               <button onClick="{{ closePanel }}" title="Close panel" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:#8b8f98;font-size:15px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">×</button>
             </div>
+            <div style="padding:10px 12px 6px;flex-shrink:0">
+              <input value="{{ snQuery }}" onChange="{{ onSnQuery }}" placeholder="Search snippets" spellCheck="false" style="width:100%;height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+            </div>
+            <sc-if value="{{ snipAddOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:6px;padding:6px 12px 12px;border-bottom:1px solid #1f2125;flex-shrink:0">
+                <input value="{{ snName }}" onChange="{{ onSnName }}" placeholder="Name" spellCheck="false" style="width:100%;height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                <input value="{{ snCmd }}" onChange="{{ onSnCmd }}" placeholder="Command" spellCheck="false" style="width:100%;height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                <button onClick="{{ addSnippetPanel }}" style="height:30px;border:none;border-radius:8px;background:{{ accent }};color:#0b0c0e;font-weight:500;font-size:12px;cursor:pointer">Save snippet</button>
+              </div>
+            </sc-if>
             <div style="flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:4px">
+              <sc-if value="{{ noSnippetMatch }}" hint-placeholder-val="{{ false }}"><div style="padding:16px 12px;color:#6f737c;font-size:12px">No snippets match.</div></sc-if>
               <sc-for list="{{ snippets }}" as="sn" hint-placeholder-count="5">
                 <button onClick="{{ sn.run }}" style="display:flex;flex-direction:column;gap:4px;width:100%;padding:10px 12px;border:none;border-radius:8px;background:transparent;color:#e6e7ea;cursor:pointer;text-align:left;font-size:13px" style-hover="background:#1b1c20">
                   <span>{{ sn.name }}</span>
@@ -408,7 +573,7 @@ class Component extends DCLogic {
   state = {
     hosts: [], keys: [], forwards: [], snippets: [], fwdStatus: {}, probe: {},
     sessions: [], active: 'home', nav: 'hosts', query: '', quick: '',
-    modal: false, form: this.blank(), fwdForm: this.blankFwd(), snipForm: { name: '', cmd: '' }, toast: null,
+    modal: false, form: this.blank(), fwdForm: this.blankFwd(), snipForm: { name: '', cmd: '' }, snQuery: '', snipAddOpen: false, portQuery: '', cronForm: { sched: '', cmd: '' }, cronAddOpen: false, svcQuery: '', svcFilter: 'running', svcBusy: {}, toast: null,
   };
   termRef = React.createRef();
   quickRef = React.createRef();
@@ -497,7 +662,7 @@ class Component extends DCLogic {
     const th = this.termTheme(); const fs = this.props.termFontSize ?? 13;
     const term = new window.Terminal({ fontFamily: "'Geist Mono', ui-monospace, Consolas, monospace", fontSize: fs, cursorBlink: true, scrollback: 5000, theme: th.theme });
     const fit = new window.FitAddon.FitAddon(); term.loadAddon(fit);
-    const el = document.createElement('div'); el.style.cssText = 'position:absolute;inset:0;padding:12px 4px 4px 16px';
+    const el = document.createElement('div'); el.style.cssText = 'position:absolute;inset:12px 8px 24px 16px';
     term.open(el);
     const rt = { term, fit, el, ws: null, fs, th: th.key, sftpPending: null };
     term.onData(d => this.wsSend(rt, { type: 'in', data: d }));
@@ -524,7 +689,7 @@ class Component extends DCLogic {
     const existing = this.state.sessions.find(x => x.hostId === hostId && (x.status === 'connected' || x.status === 'connecting'));
     if (existing) return this.setState({ active: existing.id });
     const id = 's' + (++this._n);
-    const sess = { id, hostId, status: 'connecting', error: '', panel: null, sftp: { path: '', entries: [], error: '' } };
+    const sess = { id, hostId, status: 'connecting', error: '', panel: null, sftp: { path: '', entries: [], error: '' }, ports: { rows: [], error: '', loading: false }, services: { rows: [], error: '', loading: false }, docker: { rows: [], error: '' }, cron: { raw: '', jobs: [], sys: [], timers: [], error: '', loading: false } };
     this.setState(s => ({ sessions: [...s.sessions, sess], active: id }), () => this.connect(id));
   }
 
@@ -544,13 +709,23 @@ class Component extends DCLogic {
       const m = JSON.parse(ev.data);
       if (m.type === 'log') rt.term.writeln((col[m.kind] || '') + m.text + '\x1b[0m');
       else if (m.type === 'status') {
-        if (m.status === 'connected') { this.upd(id, () => ({ status: 'connected', error: '', since: Date.now() })); rt.term.focus(); const c = this.sess(id); if (c && c.panel === 'sftp') this.sftpList(id, c.sftp.path || '.'); }
+        if (m.status === 'connected') { rt.term.write('\x1b[1;32mBurrow\x1b[0m \x1b[2mby hhsonet\x1b[0m\r\n\r\n'); this.upd(id, () => ({ status: 'connected', error: '', since: Date.now() })); rt.term.focus(); const c = this.sess(id); if (c && c.panel === 'sftp') this.sftpList(id, c.sftp.path || '.'); }
         else if (m.status === 'failed' || m.status === 'closed') {
           if (m.message) rt.term.writeln('\x1b[31m' + m.message + '\x1b[0m'); else if (m.status === 'closed') dim('Connection closed.');
           this.upd(id, () => ({ status: m.status, error: m.message || '' }));
         }
         else this.upd(id, () => ({ status: m.status }));
       }
+      else if (m.type === 'services') this.upd(id, () => ({ services: { rows: m.rows || [], error: m.error || '', loading: false } }));
+      else if (m.type === 'cron') this.upd(id, () => ({ cron: { raw: m.raw || '', jobs: m.jobs || [], sys: m.sys || [], timers: m.timers || [], error: m.error || '', loading: false } }));
+      else if (m.type === 'cron-result') { if (m.ok) { this.toast('Crontab updated'); this.setState({ cronAddOpen: false, cronForm: { sched: '', cmd: '' } }); } else this.toast(m.output); this.loadCron(id); }
+      else if (m.type === 'docker') this.upd(id, () => ({ docker: { rows: m.rows || [], error: m.error || '' } }));
+      else if (m.type === 'service-result') {
+        this.setState(st => { const b = { ...st.svcBusy }; delete b[id + m.unit]; return { svcBusy: b }; });
+        if (m.ok) { this.toast(`${m.unit}: ${m.action} ok`); if (m.kind === 'docker') this.wsSend(rt, { type: 'docker' }); setTimeout(() => this.loadServices(id), 800); }
+        else this.toast(`${m.unit}: ${m.output}`);
+      }
+      else if (m.type === 'ports') this.upd(id, () => ({ ports: { rows: m.rows || [], error: m.error || '', loading: false } }));
       else if (m.type === 'sftp-list') this.upd(id, () => ({ sftp: { path: m.path, entries: m.entries, error: '' } }));
       else if (m.type === 'sftp-error') this.upd(id, x2 => ({ sftp: { ...x2.sftp, error: m.message } }));
       else if (m.type === 'sftp-file') {
@@ -584,6 +759,54 @@ class Component extends DCLogic {
       if (active === id) active = sessions[Math.min(i, sessions.length - 1)]?.id || 'home';
       return { sessions, active };
     });
+  }
+
+  loadCron(id) {
+    const rt = this.rt[id]; if (!rt) return;
+    this.upd(id, x => ({ cron: { ...x.cron, error: '', loading: true } }));
+    this.wsSend(rt, { type: 'cron' });
+  }
+  saveCron(id, mutate) {
+    const x = this.sess(id); const rt = this.rt[id]; if (!x || !rt) return;
+    const lines = x.cron.raw ? x.cron.raw.split('\n') : [];
+    const next = mutate(lines); if (!next) return;
+    this.wsSend(rt, { type: 'cron-save', lines: next, expect: x.cron.raw });
+  }
+  humanCron(s) {
+    const alias = { '@reboot': 'at boot', '@hourly': 'every hour', '@daily': 'every day at 00:00', '@midnight': 'every day at 00:00', '@weekly': 'every Sunday at 00:00', '@monthly': 'monthly, 1st at 00:00', '@yearly': 'yearly, Jan 1', '@annually': 'yearly, Jan 1' };
+    if (alias[s]) return alias[s];
+    const [mi, h, dom, mo, dow] = s.split(/\s+/); const num = v => /^\d+$/.test(v); const pad = v => String(v).padStart(2, '0');
+    if (s.replace(/\s+/g, ' ') === '* * * * *') return 'every minute';
+    let m;
+    if ((m = mi.match(/^\*\/(\d+)$/)) && h === '*' && dom === '*' && mo === '*' && dow === '*') return `every ${m[1]} minutes`;
+    if (num(mi) && h === '*' && dom === '*' && mo === '*' && dow === '*') return `every hour at :${pad(mi)}`;
+    if (num(mi) && num(h) && dom === '*' && mo === '*' && dow === '*') return `every day at ${pad(h)}:${pad(mi)}`;
+    if (num(mi) && num(h) && dom === '*' && mo === '*' && num(dow)) return `${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][+dow]} at ${pad(h)}:${pad(mi)}`;
+    return 'custom schedule';
+  }
+  loadServices(id) {
+    const rt = this.rt[id]; if (!rt) return;
+    this.upd(id, x => ({ services: { ...x.services, error: '', loading: true } }));
+    this.wsSend(rt, { type: 'services' });
+    this.wsSend(rt, { type: 'docker' });
+  }
+  dockerAction(id, cid, name, action) {
+    const rt = this.rt[id]; if (!rt || this.state.svcBusy[id + cid]) return;
+    if (!window.confirm(`${action[0].toUpperCase() + action.slice(1)} container ${name}?`)) return;
+    this.setState(st => ({ svcBusy: { ...st.svcBusy, [id + cid]: true } }));
+    this.wsSend(rt, { type: 'docker-action', id: cid, action });
+  }
+  serviceAction(id, unit, action) {
+    const rt = this.rt[id]; if (!rt || this.state.svcBusy[id + unit]) return;
+    if (!window.confirm(`${action[0].toUpperCase() + action.slice(1)} ${unit} on this server?`)) return;
+    this.setState(st => ({ svcBusy: { ...st.svcBusy, [id + unit]: true } }));
+    this.wsSend(rt, { type: 'service-action', unit, action });
+  }
+
+  loadPorts(id) {
+    const rt = this.rt[id]; if (!rt) return;
+    this.upd(id, x => ({ ports: { ...x.ports, error: '', loading: true } }));
+    this.wsSend(rt, { type: 'ports' });
   }
 
   // ---------- SFTP ----------
@@ -648,9 +871,9 @@ class Component extends DCLogic {
     if (!x || x.status !== 'connected' || !rt) return this.toast('Connect to a host to run snippets');
     this.wsSend(rt, { type: 'in', data }); rt.term.focus();
   }
-  addSnippet() {
+  addSnippet(done) {
     const f = this.state.snipForm; if (!f.name.trim() || !f.cmd.trim()) return this.toast('Snippet needs a name and a command');
-    this.mutate(s => ({ snippets: [...s.snippets, { name: f.name.trim(), cmd: f.cmd.trim() }], snipForm: { name: '', cmd: '' } }));
+    this.mutate(s => ({ snippets: [...s.snippets, { name: f.name.trim(), cmd: f.cmd.trim() }], snipForm: { name: '', cmd: '' } }), () => { this.toast('Snippet added'); typeof done === 'function' && done(); });
   }
 
   addForward() {
@@ -738,9 +961,13 @@ class Component extends DCLogic {
       if (!cur) return;
       this.upd(cur.id, x => ({ panel: x.panel === p ? null : p }));
       if (p === 'sftp' && panel !== 'sftp' && cur.status === 'connected') this.sftpList(cur.id, cur.sftp.path || '.');
+      if (p === 'ports' && panel !== 'ports' && cur.status === 'connected') this.loadPorts(cur.id);
+      if (p === 'services' && panel !== 'services' && cur.status === 'connected') this.loadServices(cur.id);
+      if (p === 'cron' && panel !== 'cron' && cur.status === 'connected') this.loadCron(cur.id);
     };
     const live = cur && (cur.status === 'connected' || cur.status === 'connecting');
-    const snippets = s.snippets.map((sn, i) => ({
+    const sq = s.snQuery.trim().toLowerCase();
+    const snippets = s.snippets.map((sn, i) => ({ sn, i })).filter(({ sn }) => !sq || sn.name.toLowerCase().includes(sq) || sn.cmd.toLowerCase().includes(sq)).map(({ sn, i }) => ({
       ...sn,
       run: () => this.sendToActive(sn.cmd + '\r'),
       copy: () => { navigator.clipboard?.writeText(sn.cmd).catch(() => {}); this.toast('Copied to clipboard'); },
@@ -802,14 +1029,86 @@ class Component extends DCLogic {
       onFwName: this.setFwd('name'), onFwType: this.setFwd('type'), onFwLocal: this.setFwd('localPort'), onFwRHost: this.setFwd('remoteHost'), onFwRPort: this.setFwd('remotePort'),
       onFwVia: this.setFwd('via'),
       addForward: () => this.addForward(),
-      snippets,
+      snippets, noSnippetMatch: !snippets.length, snQuery: s.snQuery, onSnQuery: e => this.setState({ snQuery: e.target.value }),
+      snipAddOpen: s.snipAddOpen, toggleSnipAdd: () => this.setState(st => ({ snipAddOpen: !st.snipAddOpen })),
+      addSnippetPanel: () => this.addSnippet(() => this.setState({ snipAddOpen: false })),
       snName: s.snipForm.name, snCmd: s.snipForm.cmd, onSnName: this.setSnip('name'), onSnCmd: this.setSnip('cmd'), addSnippet: () => this.addSnippet(),
       curName: ch?.name, curEndpoint: ch ? `${ch.user}@${ch.addr}:${ch.port}` : '',
       statusLabel: cur ? statusMap[cur.status][0] + (cur.status === 'connected' && s.probe[ch?.id]?.latency != null ? ` · ${s.probe[ch.id].latency} ms` : '') : '',
       statusColor: cur ? statusMap[cur.status][1] : '#8b8f98',
       errorText: cur?.error || '',
       sftpBg: panel === 'sftp' ? '#24262b' : 'transparent', snipBg: panel === 'snippets' ? '#24262b' : 'transparent',
-      toggleSftp: togglePanel('sftp'), toggleSnip: togglePanel('snippets'), closePanel: () => cur && this.upd(cur.id, () => ({ panel: null })),
+      toggleSftp: togglePanel('sftp'), toggleCron: togglePanel('cron'), cronBg: panel === 'cron' ? '#24262b' : 'transparent', panelCron: panel === 'cron',
+      cronReload: () => cur && this.loadCron(cur.id),
+      cronAddOpen: s.cronAddOpen, toggleCronAdd: () => this.setState(st => ({ cronAddOpen: !st.cronAddOpen })),
+      cronSched: s.cronForm.sched, cronCmd: s.cronForm.cmd,
+      onCronSched: e => this.setState(st => ({ cronForm: { ...st.cronForm, sched: e.target.value } })),
+      onCronCmd: e => this.setState(st => ({ cronForm: { ...st.cronForm, cmd: e.target.value } })),
+      addCron: () => {
+        if (!cur) return;
+        const sched = s.cronForm.sched.trim().replace(/\s+/g, ' '); const cmd = s.cronForm.cmd.trim();
+        if (!/^(@(reboot|hourly|daily|weekly|monthly|yearly|annually|midnight)|[0-9*\/,\-A-Za-z?]+( [0-9*\/,\-A-Za-z?]+){4})$/.test(sched)) return this.toast('Schedule needs 5 fields (min hour day month weekday) or @daily, @hourly, …');
+        if (!cmd || /[\r\n]/.test(cmd)) return this.toast('Enter a one-line command');
+        this.saveCron(cur.id, lines => [...lines, `${sched} ${cmd}`]);
+      },
+      cronError: cur?.cron?.error || '', hasCronError: !!cur?.cron?.error, cronLoading: !!cur?.cron?.loading,
+      noUserJobs: !!cur?.cron && !cur.cron.loading && !cur.cron.error && !cur.cron.jobs.length,
+      cronJobs: (cur?.cron?.jobs || []).map(j => ({
+        ...j, human: this.humanCron(j.schedule), opacity: j.enabled ? 1 : 0.5, track: j.enabled ? accent : '#2a2c31', knob: j.enabled ? '12px' : '0px',
+        toggle: () => { if (!window.confirm(`${j.enabled ? 'Disable' : 'Enable'} this job?\n${j.cmd}`)) return; this.saveCron(cur.id, lines => lines.map((l, i) => i === j.line ? (j.enabled ? '#burrow-off# ' + l : l.replace(/^#burrow-off#\s*/, '')) : l)); },
+        del: () => { if (!window.confirm(`Delete this job from your crontab?\n${j.cmd}`)) return; this.saveCron(cur.id, lines => lines.filter((_, i) => i !== j.line)); },
+      })),
+      sysJobs: (cur?.cron?.sys || []).map(j => ({ ...j, human: this.humanCron(j.schedule) })), hasSysJobs: !!cur?.cron?.sys?.length,
+      cronTimers: cur?.cron?.timers || [], hasTimers: !!cur?.cron?.timers?.length, toggleServices: togglePanel('services'), servicesBg: panel === 'services' ? '#24262b' : 'transparent', panelServices: panel === 'services',
+      servicesReload: () => cur && this.loadServices(cur.id),
+      svcQuery: s.svcQuery, onSvcQuery: e => this.setState({ svcQuery: e.target.value }),
+      svcRunning: () => this.setState({ svcFilter: 'running' }), svcFailed: () => this.setState({ svcFilter: 'failed' }), svcAll: () => this.setState({ svcFilter: 'all' }),
+      chipRunningBg: s.svcFilter === 'running' ? '#24262b' : 'transparent', chipFailedBg: s.svcFilter === 'failed' ? '#24262b' : 'transparent', chipAllBg: s.svcFilter === 'all' ? '#24262b' : 'transparent',
+      servicesError: cur?.services?.error || '', hasServicesError: !!cur?.services?.error, servicesLoading: !!cur?.services?.loading,
+      ...(() => {
+        const dk = cur?.docker || { rows: [], error: '' };
+        const dsq = s.svcQuery.trim().toLowerCase();
+        const dbImg = /(postgres|mysql|mariadb|redis|mongo|memcached|mssql|cassandra|couchdb|influx|clickhouse|elasticsearch|opensearch)/i;
+        const dockerRows = dk.rows.map(c => {
+          const running = c.state === 'running'; const bad = c.state === 'dead' || c.state === 'restarting' || (c.state === 'exited' && !/Exited \(0\)/.test(c.status));
+          const busy = !!s.svcBusy[cur.id + c.id];
+          return { ...c, color: running ? accent : bad ? err : off, busyOpacity: busy ? 0.4 : 1, _bad: bad, _running: running,
+            info: busy ? 'working…' : `${c.status} · ${c.image}${dbImg.test(c.image) ? ' · database' : ''}${c.ports ? ' · ' + c.ports : ''}`,
+            restart: () => this.dockerAction(cur.id, c.id, c.name, 'restart'),
+            toggleLabel: running ? 'Stop' : 'Start', toggle: () => this.dockerAction(cur.id, c.id, c.name, running ? 'stop' : 'start') };
+        }).filter(c => (s.svcFilter === 'all' || (s.svcFilter === 'running' ? c._running : c._bad)) && (!dsq || c.name.toLowerCase().includes(dsq) || c.image.toLowerCase().includes(dsq)));
+        return { dockerRows, hasDockerError: !!dk.error, dockerError: dk.error, showDocker: dockerRows.length > 0 || !!dk.error };
+      })(),
+      ...(() => {
+        const DB = /^(mysql|mysqld|mariadb|postgres|postgresql|redis|redis-server|mongod|mongodb|memcached|mssql-server|cassandra|couchdb|influxdb|clickhouse-server|elasticsearch|opensearch|rabbitmq-server|etcd)(@.*)?$/;
+        const sq = s.svcQuery.trim().toLowerCase();
+        const all = cur?.services?.rows || [];
+        const mk = r => {
+          const running = r.active === 'active' && r.sub === 'running'; const failed = r.active === 'failed';
+          const busy = !!s.svcBusy[cur.id + r.unit];
+          return { ...r, color: running ? accent : failed ? err : off, state: busy ? 'working…' : `${r.active} (${r.sub})${r.desc ? ' · ' + r.desc : ''}`, busyOpacity: busy ? 0.4 : 1,
+            restart: () => this.serviceAction(cur.id, r.unit, 'restart'),
+            toggleLabel: running ? 'Stop' : 'Start', toggle: () => this.serviceAction(cur.id, r.unit, running ? 'stop' : 'start'), _running: running, _failed: failed };
+        };
+        const rows = all.map(mk);
+        const isDb = r => DB.test(r.name);
+        const pass = r => (s.svcFilter === 'all' || (s.svcFilter === 'running' ? r._running : r._failed)) && (!sq || r.name.toLowerCase().includes(sq) || (r.desc || '').toLowerCase().includes(sq));
+        const dbRows = rows.filter(r => isDb(r) && (pass(r) || (!sq && s.svcFilter === 'running' && r._failed)));
+        const serviceRows = rows.filter(r => !isDb(r) && pass(r));
+        return { dbRows, hasDbRows: dbRows.length > 0, serviceRows, servicesSummary: cur?.services ? `${rows.filter(r => r._running).length} running · ${rows.filter(r => r._failed).length} failed · ${rows.length} total. Restart needs root or passwordless sudo.` : '' };
+      })(), togglePorts: togglePanel('ports'), portsBg: panel === 'ports' ? '#24262b' : 'transparent', panelPorts: panel === 'ports',
+      portsReload: () => cur && this.loadPorts(cur.id),
+      portQuery: s.portQuery, onPortQuery: e => this.setState({ portQuery: e.target.value }),
+      portsError: cur?.ports?.error || '', hasPortsError: !!cur?.ports?.error, portsLoading: !!cur?.ports?.loading,
+      portRows: (() => {
+        const pq = s.portQuery.trim().toLowerCase();
+        const names = { 22: 'ssh', 25: 'smtp', 53: 'dns', 80: 'http', 443: 'https', 3000: 'dev server', 3306: 'mysql', 5432: 'postgres', 5672: 'rabbitmq', 6379: 'redis', 8080: 'http-alt', 9200: 'elasticsearch', 11211: 'memcached', 27017: 'mongodb' };
+        return (cur?.ports?.rows || []).map(r => {
+          const local = /^(127\.|::1$|localhost)/.test(r.addr);
+          return { ...r, label: [names[r.port], r.proc].filter(Boolean).join(' · ') || 'unknown', exposure: local ? 'local' : 'public', expColor: local ? '#8b8f98' : '#e8b85a' };
+        }).filter(r => !pq || String(r.port).includes(pq) || r.label.toLowerCase().includes(pq) || r.addr.includes(pq));
+      })(),
+      portsSummary: cur?.ports ? `${cur.ports.rows.length} listening. "public" means reachable beyond this host. Process names need root for other users.` : '', toggleSnip: togglePanel('snippets'), closePanel: () => cur && this.upd(cur.id, () => ({ panel: null })),
       primaryLabel: live ? 'Disconnect' : 'Reconnect',
       primaryAction: () => cur && (live ? this.disconnect(cur.id) : this.reconnect(cur.id)),
       termRef: this.termRef,

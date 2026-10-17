@@ -128,6 +128,82 @@ function friendlyError(e) {
   return m;
 }
 
+// ---------- remote ports ----------
+function parsePorts(out) {
+  const rows = [];
+  for (const line of out.split('\n')) {
+    const f = line.trim().split(/\s+/); if (f.length < 5) continue;
+    let proto, local, rest;
+    if (/^(tcp|udp)/.test(f[0]) && /^[A-Z-]+$/.test(f[1] || '')) { proto = f[0]; local = f[4]; rest = f.slice(6).join(' '); }   // ss
+    else if (/^(tcp|udp)/.test(f[0])) { proto = f[0]; local = f[3]; rest = f.slice(5).join(' '); }                                // netstat
+    else continue;
+    const i = local.lastIndexOf(':'); if (i < 0) continue;
+    const port = +local.slice(i + 1); if (!port) continue;
+    const ssm = rest.match(/users:\(\("([^"]+)",pid=(\d+)/); const nsm = rest.match(/(\d+)\/(\S+)/);
+    const proc = ssm ? `${ssm[1]} (${ssm[2]})` : nsm ? `${nsm[2]} (${nsm[1]})` : '';
+    rows.push({ proto: proto.replace(/6$/, ''), addr: local.slice(0, i).replace(/^\[|\]$/g, '') || '*', port, proc });
+  }
+  const seen = new Set();
+  return rows.filter(r => { const k = r.proto + r.addr + r.port; if (seen.has(k)) return false; seen.add(k); return true; }).sort((a, b) => a.port - b.port);
+}
+
+// ---------- remote cron ----------
+const SCHED_RE = /^(@[a-z]+|[0-9*/,\-A-Za-z?]+(?:\s+[0-9*/,\-A-Za-z?]+){4})$/;
+function parseCron(out) {
+  const sec = { user: '', sys: [], timers: '' };
+  let cur = null, file = '/etc/crontab';
+  const sysLines = [];
+  for (const line of out.split('\n')) {
+    if (line === '__USER__') { cur = 'user'; continue; }
+    if (line === '__SYS__') { cur = 'sys'; file = '/etc/crontab'; continue; }
+    if (line === '__TIMERS__') { cur = 'timers'; continue; }
+    if (cur === 'sys' && line.startsWith('__FILE ')) { file = line.slice(7); continue; }
+    if (cur === 'user') sec.user += line + '\n';
+    else if (cur === 'sys') sysLines.push([file, line]);
+    else if (cur === 'timers') sec.timers += line + '\n';
+  }
+  let rawText = sec.user;
+  if (/^no crontab for /m.test(rawText)) rawText = '';
+  const raw = rawText.replace(/\s+$/, '');
+  const jobs = [];
+  raw.split('\n').forEach((line, idx) => {
+    const m = line.match(/^(#burrow-off#\s*)?(@[a-z]+|\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s+(.+)$/);
+    if (!m || (!m[1] && line.trim().startsWith('#')) || /^\w+=/.test(line.trim())) return;
+    if (!SCHED_RE.test(m[2])) return;
+    jobs.push({ line: idx, schedule: m[2], cmd: m[3], enabled: !m[1] });
+  });
+  const sys = [];
+  for (const [f, line] of sysLines) {
+    const t = line.trim(); if (!t || t.startsWith('#') || /^\w+=/.test(t)) continue;
+    const m = t.match(/^(@[a-z]+|\S+\s+\S+\s+\S+\s+\S+\s+\S+)\s+(\S+)\s+(.+)$/);
+    if (m && SCHED_RE.test(m[1])) sys.push({ file: f, schedule: m[1], user: m[2], cmd: m[3] });
+  }
+  const timers = [];
+  for (const line of sec.timers.split('\n')) {
+    const f = line.trim().split(/\s+/); if (f.length < 2 || !/\.timer$/.test(f[f.length - 2])) continue;
+    timers.push({ unit: f[f.length - 2], runs: f[f.length - 1], next: f[0] === 'n/a' ? 'n/a' : f.slice(0, 3).join(' ') });
+  }
+  return { raw, jobs, sys, timers };
+}
+
+// ---------- remote services ----------
+function runCmd(conn, cmd, cb) {
+  conn.exec(cmd, (err, ch) => {
+    if (err) return cb(err);
+    let out = ''; ch.on('data', d => { out += d; }); ch.stderr.on('data', d => { out += d; });
+    ch.on('close', () => cb(null, out));
+  });
+}
+function parseServices(out) {
+  const rows = [];
+  for (const line of out.split('\n')) {
+    const m = line.trim().match(/^(\S+\.service)\s+(\S+)\s+(\S+)\s+(\S+)\s*(.*)$/);
+    if (!m || m[2] === 'not-found') continue;
+    rows.push({ unit: m[1], name: m[1].replace(/\.service$/, ''), active: m[3], sub: m[4], desc: m[5] });
+  }
+  return rows.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 // ---------- ws sessions ----------
 function onSocket(ws) {
   let conn = null, stream = null, sftp = null, ending = false;
@@ -173,6 +249,86 @@ function onSocket(ws) {
       case 'in': if (stream && typeof m.data === 'string') stream.write(m.data); break;
       case 'resize': if (stream && m.cols > 0 && m.rows > 0) stream.setWindow(m.rows, m.cols, 0, 0); break;
       case 'disconnect': end(); status('closed'); break;
+      case 'ports': {
+        if (!conn || !stream) return send({ type: 'ports', error: 'Not connected', rows: [] });
+        const cmd = 'ss -H -tulnp 2>/dev/null || netstat -tulnp 2>/dev/null | tail -n +3';
+        conn.exec(cmd, (err, ch) => {
+          if (err) return send({ type: 'ports', error: friendlyError(err), rows: [] });
+          let out = ''; ch.on('data', d => { out += d; }); ch.stderr.on('data', () => {});
+          ch.on('close', () => send({ type: 'ports', rows: parsePorts(out), error: out.trim() ? '' : 'Neither ss nor netstat is available on this server' }));
+        });
+        break;
+      }
+      case 'services': {
+        if (!conn || !stream) return send({ type: 'services', error: 'Not connected', rows: [] });
+        runCmd(conn, 'systemctl list-units --type=service --all --no-legend --no-pager --plain 2>&1', (err, out) => {
+          if (err) return send({ type: 'services', error: friendlyError(err), rows: [] });
+          const rows = parseServices(out);
+          send({ type: 'services', rows, error: rows.length ? '' : 'No systemd services found (is this a systemd host?)' });
+        });
+        break;
+      }
+      case 'docker': {
+        if (!conn || !stream) return send({ type: 'docker', error: 'Not connected', rows: [] });
+        const fmt = "--format '{{.ID}}|{{.Names}}|{{.Image}}|{{.State}}|{{.Status}}|{{.Ports}}'";
+        runCmd(conn, `docker ps -a ${fmt} 2>/dev/null || sudo -n docker ps -a ${fmt} 2>&1`, (err, out) => {
+          if (err) return send({ type: 'docker', error: friendlyError(err), rows: [] });
+          const rows = out.split('\n').map(l => l.trim().split('|')).filter(f => f.length >= 6 && /^[0-9a-f]{6,}$/.test(f[0]))
+            .map(f => ({ id: f[0], name: f[1], image: f[2], state: f[3], status: f[4], ports: f.slice(5).join('|') }));
+          let error = '';
+          if (!rows.length) error = /not found|command not found/i.test(out) ? 'Docker is not installed on this server' : /permission denied|password is required|a terminal is required/i.test(out) ? 'Docker needs root, docker group membership or passwordless sudo' : /^\s*$/.test(out) || /CONTAINER/.test(out) ? '' : out.trim().split('\n')[0].slice(0, 160);
+          send({ type: 'docker', rows, error });
+        });
+        break;
+      }
+      case 'docker-action': {
+        const unit = String(m.id || ''); const action = String(m.action || '');
+        if (!conn || !stream) return send({ type: 'service-result', unit, action, ok: false, output: 'Not connected' });
+        if (!/^[A-Za-z0-9_.-]{1,128}$/.test(unit) || !['start', 'stop', 'restart'].includes(action)) return send({ type: 'service-result', unit, action, ok: false, output: 'Invalid request' });
+        runCmd(conn, `docker ${action} ${unit} 2>/dev/null || sudo -n docker ${action} ${unit} 2>&1; echo "__rc=$?"`, (err, out) => {
+          if (err) return send({ type: 'service-result', unit, action, ok: false, output: friendlyError(err) });
+          const rc = (out.match(/__rc=(\d+)\s*$/) || [])[1];
+          const text = out.replace(/__rc=\d+\s*$/, '').trim();
+          send({ type: 'service-result', unit, action, ok: rc === '0', kind: 'docker', output: rc === '0' ? '' : (text.split('\n').pop() || 'Command failed').slice(0, 200) });
+        });
+        break;
+      }
+      case 'cron': {
+        if (!conn || !stream) return send({ type: 'cron', error: 'Not connected', jobs: [], sys: [], timers: [], raw: '' });
+        const cmd = "echo '__USER__'; crontab -l 2>&1; echo '__SYS__'; cat /etc/crontab 2>/dev/null; for f in /etc/cron.d/*; do [ -f \"$f\" ] && { echo \"__FILE $f\"; cat \"$f\"; }; done 2>/dev/null; echo '__TIMERS__'; systemctl list-timers --all --no-pager --no-legend 2>/dev/null";
+        runCmd(conn, cmd, (err, out) => err ? send({ type: 'cron', error: friendlyError(err), jobs: [], sys: [], timers: [], raw: '' }) : send({ type: 'cron', ...parseCron(out), error: '' }));
+        break;
+      }
+      case 'cron-save': {
+        if (!conn || !stream) return send({ type: 'cron-result', ok: false, output: 'Not connected' });
+        const lines = Array.isArray(m.lines) ? m.lines.map(String) : null;
+        if (!lines || lines.length > 2000 || lines.some(l => l.length > 2000 || /[\0\r\n]/.test(l))) return send({ type: 'cron-result', ok: false, output: 'Invalid crontab content' });
+        runCmd(conn, 'crontab -l 2>/dev/null', (e1, cur) => {
+          if (e1) return send({ type: 'cron-result', ok: false, output: friendlyError(e1) });
+          const norm = s => String(s).replace(/\s+$/, '');
+          if (norm(cur) !== norm(m.expect || '')) return send({ type: 'cron-result', ok: false, output: 'Crontab changed on the server since it was loaded. Refresh and try again.' });
+          conn.exec('crontab -l > "$HOME/.burrow-crontab.bak" 2>/dev/null; crontab - 2>&1', (e2, ch) => {
+            if (e2) return send({ type: 'cron-result', ok: false, output: friendlyError(e2) });
+            let out = ''; ch.on('data', d => { out += d; }); ch.stderr.on('data', d => { out += d; });
+            ch.on('close', code => send({ type: 'cron-result', ok: code === 0, output: code === 0 ? '' : (out.trim() || 'crontab failed').slice(0, 300) }));
+            ch.end(lines.join('\n') + (lines.length ? '\n' : ''));
+          });
+        });
+        break;
+      }
+      case 'service-action': {
+        const unit = String(m.unit || ''); const action = String(m.action || '');
+        if (!conn || !stream) return send({ type: 'service-result', unit, action, ok: false, output: 'Not connected' });
+        if (!/^[A-Za-z0-9@._:-]{1,128}$/.test(unit) || !['start', 'stop', 'restart'].includes(action)) return send({ type: 'service-result', unit, action, ok: false, output: 'Invalid request' });
+        runCmd(conn, `systemctl ${action} ${unit} 2>/dev/null || sudo -n systemctl ${action} ${unit} 2>&1; echo "__rc=$?"`, (err, out) => {
+          if (err) return send({ type: 'service-result', unit, action, ok: false, output: friendlyError(err) });
+          const rc = (out.match(/__rc=(\d+)\s*$/) || [])[1];
+          const text = out.replace(/__rc=\d+\s*$/, '').trim();
+          const ok = rc === '0';
+          send({ type: 'service-result', unit, action, ok, output: ok ? '' : (/password is required|a terminal is required|interactive authentication/i.test(text) ? 'Needs root or passwordless sudo on this server (sudo -n failed).' : text || 'Command failed') });
+        });
+        break;
+      }
       case 'sftp-list': getSftp((err, s) => {
         if (err) return send({ type: 'sftp-error', message: friendlyError(err) });
         const req = !m.path || m.path === '.' || m.path === '~' ? '.' : m.path;
