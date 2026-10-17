@@ -19,7 +19,7 @@ input,select,button{font-family:inherit}
 </style>
 </helmet>
 <div style="display:flex;height:100vh;min-height:600px;overflow:hidden;background:#0e0f11;color:#e6e7ea;font-size:13px">
-  <aside style="width:248px;flex-shrink:0;background:#121316;border-right:1px solid #1f2125;display:flex;flex-direction:column;min-height:0">
+  <aside style="position:relative;width:248px;flex-shrink:0;background:#121316;border-right:1px solid #1f2125;display:flex;flex-direction:column;min-height:0">
     <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 14px">
       <div style="width:22px;height:22px;border-radius:6px;background:{{ accent }};display:flex;align-items:center;justify-content:center;color:#0e0f11;font-family:'Geist Mono',monospace;font-size:13px;font-weight:600">›</div>
       <div style="font-weight:600;font-size:14px;letter-spacing:-0.01em">Burrow</div>
@@ -58,6 +58,41 @@ input,select,button{font-family:inherit}
         </div>
       </sc-for>
     </div>
+      <sc-if value="{{ userMenuOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeUserMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+      <div style="position:absolute;left:10px;right:10px;bottom:64px;z-index:41;padding:14px;background:#16171b;border:1px solid #2a2c31;border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:14px">
+        <label style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:11px;color:#8b8f98">Display name</span>
+          <input value="{{ prefName }}" onChange="{{ onPrefName }}" maxLength="30" spellCheck="false" style="height:32px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;outline:none" style-focus="border-color:#4a4d54">
+        </label>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:11px;color:#8b8f98">Accent color</span>
+          <div style="display:flex;gap:8px">
+            <sc-for list="{{ accentChoices }}" as="a"><button onClick="{{ a.pick }}" title="{{ a.color }}" style="width:24px;height:24px;border-radius:50%;border:2px solid {{ a.ring }};background:{{ a.color }};cursor:pointer;padding:0"></button></sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:11px;color:#8b8f98">Terminal font size</span>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button onClick="{{ fontDown }}" style="width:28px;height:28px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#e6e7ea;cursor:pointer;font-size:14px">−</button>
+            <span style="width:46px;text-align:center;font-family:'Geist Mono',monospace;font-size:12px">{{ prefFont }} px</span>
+            <button onClick="{{ fontUp }}" style="width:28px;height:28px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#e6e7ea;cursor:pointer;font-size:14px">+</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:11px;color:#8b8f98">Terminal theme</span>
+          <div style="display:flex;gap:6px">
+            <sc-for list="{{ themeChoices }}" as="th"><button onClick="{{ th.pick }}" style="flex:1;height:28px;border:1px solid #2a2c31;border-radius:6px;background:{{ th.bg }};color:#e6e7ea;font-size:12px;cursor:pointer">{{ th.name }}</button></sc-for>
+          </div>
+        </div>
+        <button onClick="{{ resetPrefs }}" style="align-self:flex-start;border:none;background:transparent;padding:0;color:#8b8f98;font-size:12px;cursor:pointer" style-hover="color:#e6e7ea">Reset to defaults</button>
+      </div>
+    </sc-if>
+    <button onClick="{{ toggleUserMenu }}" style="display:flex;align-items:center;gap:10px;width:100%;height:56px;padding:0 14px;border:none;border-top:1px solid #1f2125;background:transparent;color:#e6e7ea;cursor:pointer;text-align:left;flex-shrink:0" style-hover="background:#17181b">
+      <span style="width:30px;height:30px;border-radius:50%;background:{{ accent }};color:#0e0f11;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0">{{ userInitial }}</span>
+      <span style="flex:1;min-width:0"><span style="display:block;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ prefName }}</span><span style="display:block;font-size:11px;color:#6f737c">Settings</span></span>
+      <span style="color:#6f737c;font-size:11px">⋯</span>
+    </button>
   </aside>
 
   <main style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0">
@@ -98,8 +133,8 @@ input,select,button{font-family:inherit}
                   </div>
                   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px">
                     <sc-for list="{{ g.hosts }}" as="h" hint-placeholder-count="3">
-                      <div style="position:relative">
-                      <button onClick="{{ h.connect }}" style="display:flex;flex-direction:column;gap:12px;width:100%;padding:14px 16px;background:#141518;border:1px solid #222429;border-radius:10px;color:#e6e7ea;text-align:left;cursor:pointer;font-size:13px" style-hover="border-color:#373a40;background:#17181c">
+                      <div style="position:relative;display:flex">
+                      <button onClick="{{ h.connect }}" style="display:flex;flex-direction:column;gap:12px;width:100%;height:100%;padding:14px 16px;background:#141518;border:1px solid #222429;border-radius:10px;color:#e6e7ea;text-align:left;cursor:pointer;font-size:13px" style-hover="border-color:#373a40;background:#17181c">
                         <div style="display:flex;align-items:center;gap:8px;width:100%;padding-right:52px">
                           <span style="width:7px;height:7px;border-radius:50%;background:{{ h.dot }};flex-shrink:0"></span>
                           <span style="font-weight:500;font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.name }}</span>
@@ -113,7 +148,7 @@ input,select,button{font-family:inherit}
                           </div>
                           <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:#6f737c"><span>24h ago</span><span>{{ h.uptimeText }}</span><span>now</span></div>
                         </div>
-                        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px">
+                        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;padding-right:48px;min-height:20px;margin-top:auto">
                           <div style="display:flex;gap:4px;flex-wrap:wrap">
                             <sc-for list="{{ h.tagList }}" as="tg">
                               <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:#1e2024;color:#a4a8b0">{{ tg.t }}</span>
@@ -121,6 +156,9 @@ input,select,button{font-family:inherit}
                           </div>
                           <span style="font-size:12px;color:{{ h.latColor }};font-family:'Geist Mono',monospace;white-space:nowrap">{{ h.lat }}</span>
                         </div>
+                      </button>
+                      <button onClick="{{ h.toggleConn }}" title="{{ h.toggleTitle }}" style="position:absolute;bottom:14px;right:14px;width:34px;height:20px;padding:2px;border:none;border-radius:10px;background:{{ h.toggleTrack }};cursor:pointer;display:flex">
+                        <span style="width:16px;height:16px;border-radius:50%;background:#e6e7ea;transform:translateX({{ h.toggleKnob }})"></span>
                       </button>
                       <div style="position:absolute;top:10px;right:10px;display:flex;gap:2px">
                         <button onClick="{{ h.edit }}" title="Edit host" style="width:22px;height:22px;border:none;border-radius:5px;background:transparent;color:#6f737c;cursor:pointer;font-size:12px" style-hover="background:#24262b;color:#e6e7ea">✎</button>
@@ -696,7 +734,7 @@ class Component extends DCLogic {
   static GROUPS = ['Production', 'Staging', 'Homelab', 'Unsorted'];
 
   state = {
-    hosts: [], keys: [], forwards: [], snippets: [], fwdStatus: {}, probe: {}, hist: {}, hostSys: {}, groupFilter: null,
+    hosts: [], keys: [], forwards: [], snippets: [], fwdStatus: {}, probe: {}, hist: {}, hostSys: {}, groupFilter: null, prefs: {}, userMenuOpen: false,
     sessions: [], active: 'home', nav: 'hosts', query: '', quick: '',
     modal: false, form: this.blank(), fwdForm: this.blankFwd(), snipForm: { name: '', cmd: '' }, snQuery: '', snipAddOpen: false, portQuery: '', dbCreds: { user: '', pw: '' }, cronForm: { sched: '', cmd: '' }, cronAddOpen: false, svcQuery: '', svcFilter: 'running', svcBusy: {}, toast: null,
   };
@@ -717,6 +755,7 @@ class Component extends DCLogic {
     this._onResize = () => this.fitAll();
     window.addEventListener('keydown', this._onGlobalKey);
     window.addEventListener('resize', this._onResize);
+    try { const saved = JSON.parse(localStorage.getItem('burrow.prefs') || '{}'); if (saved && typeof saved === 'object') this.setState({ prefs: saved }); } catch {}
     try { await Promise.all([this.loadLibs(), this.refresh()]); }
     catch (e) { return this.toast('Cannot reach the Burrow server: ' + e.message); }
     this.probe();
@@ -733,7 +772,7 @@ class Component extends DCLogic {
     const host = this.termRef.current; const cur = this.sess(this.state.active);
     const rt = cur && this.rt[cur.id];
     if (host && rt && rt.el.parentNode !== host) host.replaceChildren(rt.el);
-    const fs = this.props.termFontSize ?? 13; const th = this.termTheme();
+    const fs = this.pref('termFontSize'); const th = this.termTheme();
     for (const id of Object.keys(this.rt)) {
       const r = this.rt[id];
       if (r.fs !== fs) { r.fs = fs; r.term.options.fontSize = fs; }
@@ -741,6 +780,15 @@ class Component extends DCLogic {
     }
     if (rt) requestAnimationFrame(() => { this.fitOne(rt); if (this._focusId !== cur.id) { this._focusId = cur.id; rt.term.focus(); } });
     else this._focusId = null;
+  }
+
+  // ---------- preferences ----------
+  pref(k) {
+    const v = this.state.prefs[k]; if (v != null) return v;
+    return { accent: this.props.accent ?? '#5fd4a0', termFontSize: this.props.termFontSize ?? 13, terminalTheme: this.props.terminalTheme ?? 'Graphite', name: 'hhsonet' }[k];
+  }
+  setPref(patch) {
+    this.setState(st => ({ prefs: { ...st.prefs, ...patch } }), () => { try { localStorage.setItem('burrow.prefs', JSON.stringify(this.state.prefs)); } catch {} });
   }
 
   // ---------- helpers ----------
@@ -778,14 +826,14 @@ class Component extends DCLogic {
     try { this.setState({ hist: await this.api('GET', '/api/history') }); } catch {}
   }
   termTheme() {
-    const accent = this.props.accent ?? '#5fd4a0';
-    const bg = { Graphite: '#101114', Black: '#050505', Navy: '#0c111d' }[this.props.terminalTheme ?? 'Graphite'] || '#101114';
+    const accent = this.pref('accent');
+    const bg = { Graphite: '#101114', Black: '#050505', Navy: '#0c111d' }[this.pref('terminalTheme')] || '#101114';
     return { key: accent + bg, bg, theme: { background: bg, foreground: '#e6e7ea', cursor: accent, selectionBackground: '#3a4150' } };
   }
 
   // ---------- terminal sessions ----------
   makeRt(id) {
-    const th = this.termTheme(); const fs = this.props.termFontSize ?? 13;
+    const th = this.termTheme(); const fs = this.pref('termFontSize');
     const term = new window.Terminal({ fontFamily: "'Geist Mono', ui-monospace, Consolas, monospace", fontSize: fs, cursorBlink: true, scrollback: 5000, theme: th.theme });
     const fit = new window.FitAddon.FitAddon(); term.loadAddon(fit);
     const el = document.createElement('div'); el.style.cssText = 'position:absolute;inset:12px 8px 24px 16px';
@@ -811,12 +859,12 @@ class Component extends DCLogic {
   fitOne(rt) { try { if (rt.el.offsetWidth > 0) rt.fit.fit(); } catch {} }
   fitAll() { const cur = this.sess(this.state.active); if (cur && this.rt[cur.id]) this.fitOne(this.rt[cur.id]); }
 
-  openHost(hostId) {
+  openHost(hostId, background) {
     const existing = this.state.sessions.find(x => x.hostId === hostId && (x.status === 'connected' || x.status === 'connecting'));
-    if (existing) return this.setState({ active: existing.id });
+    if (existing) return background ? null : this.setState({ active: existing.id });
     const id = 's' + (++this._n);
     const sess = { id, hostId, status: 'connecting', error: '', panel: null, sftp: { path: '', entries: [], error: '' }, ports: { rows: [], error: '', loading: false }, services: { rows: [], error: '', loading: false }, docker: { rows: [], error: '' }, cron: { raw: '', jobs: [], sys: [], timers: [], error: '', loading: false }, db: { detected: false, engines: [], engine: '', view: 'dbs', dbs: null, dbSel: '', tables: null, procs: null, qres: null, sql: 'SELECT 1', loading: false, error: '' } };
-    this.setState(s => ({ sessions: [...s.sessions, sess], active: id }), () => this.connect(id));
+    this.setState(s => ({ sessions: [...s.sessions, sess], active: background ? s.active : id }), () => this.connect(id));
   }
 
   connect(id) {
@@ -1092,8 +1140,8 @@ class Component extends DCLogic {
   // ---------- view model ----------
   renderVals() {
     const s = this.state;
-    const accent = this.props.accent ?? '#5fd4a0';
-    const fontSize = this.props.termFontSize ?? 13;
+    const accent = this.pref('accent');
+    const fontSize = this.pref('termFontSize');
     const termBg = this.termTheme().bg;
     const warn = '#e8b85a', err = '#f07a6a', off = '#4a4d54';
     const cur = this.sess(s.active);
@@ -1122,6 +1170,12 @@ class Component extends DCLogic {
         rowBg: cur && cur.hostId === h.id ? '#1e2024' : 'transparent',
         tagList: (h.tags || []).map(t => ({ t })),
         connect: () => this.openHost(h.id),
+        toggleTrack: openIds.has(h.id) ? accent : '#2a2c31', toggleKnob: openIds.has(h.id) ? '14px' : '0px',
+        toggleTitle: openIds.has(h.id) ? 'Disconnect' : 'Connect in background',
+        toggleConn: () => {
+          const live3 = s.sessions.filter(x => x.hostId === h.id && (x.status === 'connected' || x.status === 'connecting'));
+          if (live3.length) live3.forEach(x => this.closeSession(x.id)); else this.openHost(h.id, true);
+        },
         edit: () => this.editHost(h.id),
         del: () => this.deleteHost(h.id),
       };
@@ -1209,6 +1263,13 @@ class Component extends DCLogic {
           bg: on ? '#1e2024' : 'transparent', color: on ? '#e6e7ea' : '#6f737c',
           pick: () => this.setState({ nav: 'hosts', active: 'home', groupFilter: on ? null : g, query: '' }) };
       }),
+      userMenuOpen: s.userMenuOpen, toggleUserMenu: () => this.setState(st => ({ userMenuOpen: !st.userMenuOpen })), closeUserMenu: () => this.setState({ userMenuOpen: false }),
+      prefName: this.pref('name'), userInitial: (this.pref('name') || '?').trim().charAt(0).toUpperCase() || '?',
+      onPrefName: e => this.setPref({ name: e.target.value.slice(0, 30) }),
+      accentChoices: ['#5fd4a0', '#7aa2ff', '#e8b85a', '#c49bff'].map(c => ({ color: c, ring: c === accent ? '#e6e7ea' : 'transparent', pick: () => this.setPref({ accent: c }) })),
+      prefFont: fontSize, fontDown: () => this.setPref({ termFontSize: Math.max(11, fontSize - 1) }), fontUp: () => this.setPref({ termFontSize: Math.min(18, fontSize + 1) }),
+      themeChoices: ['Graphite', 'Black', 'Navy'].map(n => ({ name: n, bg: this.pref('terminalTheme') === n ? '#24262b' : 'transparent', pick: () => this.setPref({ terminalTheme: n }) })),
+      resetPrefs: () => this.setState({ prefs: {} }, () => { try { localStorage.removeItem('burrow.prefs'); } catch {} }),
       hostsTitle: s.groupFilter || 'Hosts', hasGroupFilter: !!s.groupFilter, clearGroup: () => this.setState({ groupFilter: null }),
       tabs,
       homeBg: isHome ? '#0e0f11' : 'transparent', homeColor: isHome ? '#e6e7ea' : '#8b8f98', homeShadow: isHome ? `inset 0 -2px 0 ${accent}` : 'none',
@@ -1234,7 +1295,7 @@ class Component extends DCLogic {
       }),
       query: s.query, onQuery: e => this.setState({ query: e.target.value }),
       hostSummary: `${s.hosts.length} hosts · ${online} reachable`,
-      statTiles, filteredGroups, noResults: !filteredGroups.length,
+      filteredGroups, noResults: !filteredGroups.length,
       emptyMsg: q ? `No hosts match “${s.query}”.` : 'No hosts yet. Click New host, or type user@host in the box at the top left.',
       keys, generateKey: () => this.generateKey(),
       forwards, hostOpts, hasHosts: s.hosts.length > 0,
