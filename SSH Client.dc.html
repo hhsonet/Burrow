@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;height:100%;background:#0e0f11;color:#e6e7ea;font-family:'Geist',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#c9cbd1}a:hover{color:#ffffff}
+input,select,button{font-family:inherit}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2a2c31;border-radius:10px;border:2px solid transparent;background-clip:padding-box}::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+<div style="display:flex;height:100vh;min-height:600px;overflow:hidden;background:#0e0f11;color:#e6e7ea;font-size:13px">
+  <aside style="width:248px;flex-shrink:0;background:#121316;border-right:1px solid #1f2125;display:flex;flex-direction:column;min-height:0">
+    <div style="display:flex;align-items:center;gap:10px;padding:16px 16px 14px">
+      <div style="width:22px;height:22px;border-radius:6px;background:{{ accent }};display:flex;align-items:center;justify-content:center;color:#0e0f11;font-family:'Geist Mono',monospace;font-size:13px;font-weight:600">›</div>
+      <div style="font-weight:600;font-size:14px;letter-spacing:-0.01em">Burrow</div>
+    </div>
+    <div style="padding:0 12px 12px">
+      <div style="display:flex;align-items:center;gap:8px;height:34px;padding:0 8px 0 10px;background:#0e0f11;border:1px solid #24262b;border-radius:8px">
+        <span style="font-family:'Geist Mono',monospace;color:#6f737c;font-size:12px">ssh</span>
+        <input ref="{{ quickRef }}" value="{{ quick }}" onChange="{{ onQuick }}" onKeyDown="{{ onQuickKey }}" placeholder="user@host" spellCheck="false" style="flex:1;min-width:0;background:transparent;border:none;outline:none;color:#e6e7ea;font-family:'Geist Mono',monospace;font-size:12px">
+        <span style="font-size:11px;color:#6f737c;border:1px solid #2a2c31;border-radius:4px;padding:1px 5px">⌘K</span>
+      </div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:2px;padding:0 8px 10px">
+      <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="4">
+        <button onClick="{{ n.go }}" style="display:flex;align-items:center;justify-content:space-between;height:32px;padding:0 10px;border:none;border-radius:6px;background:{{ n.bg }};color:{{ n.color }};font-size:13px;cursor:pointer;text-align:left" style-hover="background:#1b1c20;color:#e6e7ea">
+          <span>{{ n.label }}</span>
+          <span style="font-size:11px;color:#6f737c;font-family:'Geist Mono',monospace">{{ n.count }}</span>
+        </button>
+      </sc-for>
+    </nav>
+    <div style="flex:1;overflow:auto;padding:4px 8px 16px;border-top:1px solid #1f2125">
+      <sc-for list="{{ sidebarGroups }}" as="g" hint-placeholder-count="3">
+        <div>
+          <div style="padding:14px 10px 6px;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#6f737c">{{ g.name }}</div>
+          <sc-for list="{{ g.hosts }}" as="h" hint-placeholder-count="2">
+            <button onClick="{{ h.connect }}" style="display:flex;align-items:center;gap:10px;width:100%;height:30px;padding:0 10px;border:none;border-radius:6px;background:{{ h.rowBg }};color:#c9cbd1;font-size:13px;cursor:pointer;text-align:left" style-hover="background:#1b1c20;color:#e6e7ea">
+              <span style="width:7px;height:7px;border-radius:50%;background:{{ h.dot }};flex-shrink:0"></span>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.name }}</span>
+              <sc-if value="{{ h.isOpen }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:10px;color:#8b8f98;font-family:'Geist Mono',monospace">open</span>
+              </sc-if>
+            </button>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </aside>
+
+  <main style="flex:1;min-width:0;display:flex;flex-direction:column;min-height:0">
+    <div style="display:flex;align-items:stretch;height:40px;background:#121316;border-bottom:1px solid #1f2125;flex-shrink:0;overflow-x:auto">
+      <button onClick="{{ goHome }}" style="display:flex;align-items:center;padding:0 18px;border:none;border-right:1px solid #1f2125;background:{{ homeBg }};color:{{ homeColor }};box-shadow:{{ homeShadow }};font-size:13px;cursor:pointer;flex-shrink:0">Vault</button>
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="1">
+        <div onClick="{{ t.select }}" style="display:flex;align-items:center;gap:8px;padding:0 6px 0 14px;border-right:1px solid #1f2125;background:{{ t.bg }};color:{{ t.color }};box-shadow:{{ t.shadow }};cursor:pointer;width:190px;flex-shrink:0">
+          <span style="width:7px;height:7px;border-radius:50%;background:{{ t.dot }};flex-shrink:0"></span>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ t.label }}</span>
+          <button onClick="{{ t.close }}" title="Close tab" style="width:22px;height:22px;border:none;border-radius:5px;background:transparent;color:#6f737c;cursor:pointer;font-size:15px;line-height:1;flex-shrink:0" style-hover="background:#24262b;color:#e6e7ea">×</button>
+        </div>
+      </sc-for>
+      <button onClick="{{ openNewHost }}" title="New host" style="width:40px;flex-shrink:0;border:none;background:transparent;color:#8b8f98;font-size:18px;cursor:pointer" style-hover="color:#e6e7ea;background:#1b1c20">+</button>
+    </div>
+
+    <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1;overflow:auto;min-height:0">
+        <div style="max-width:1120px;margin:0 auto;padding:32px 32px 56px">
+
+          <sc-if value="{{ navHosts }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:28px">
+                <div>
+                  <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.02em">Hosts</h1>
+                  <div style="margin-top:4px;color:#8b8f98">{{ hostSummary }}</div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Filter by name, address, tag" spellCheck="false" style="width:240px;max-width:100%;height:34px;padding:0 12px;background:#121316;border:1px solid #24262b;border-radius:8px;color:#e6e7ea;font-size:13px;outline:none" style-focus="border-color:#3a3d43">
+                  <button onClick="{{ openNewHost }}" style="height:34px;padding:0 14px;border:none;border-radius:8px;background:{{ accent }};color:#0b0c0e;font-weight:500;font-size:13px;cursor:pointer">New host</button>
+                </div>
+              </div>
+              <sc-for list="{{ filteredGroups }}" as="g" hint-placeholder-count="2">
+                <div style="margin-bottom:28px">
+                  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px">
+                    <span style="font-size:12px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#8b8f98">{{ g.name }}</span>
+                    <span style="font-size:12px;color:#6f737c">{{ g.count }}</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px">
+                    <sc-for list="{{ g.hosts }}" as="h" hint-placeholder-count="3">
+                      <div style="position:relative">
+                      <button onClick="{{ h.connect }}" style="display:flex;flex-direction:column;gap:12px;width:100%;padding:14px 16px;background:#141518;border:1px solid #222429;border-radius:10px;color:#e6e7ea;text-align:left;cursor:pointer;font-size:13px" style-hover="border-color:#373a40;background:#17181c">
+                        <div style="display:flex;align-items:center;gap:8px;width:100%;padding-right:52px">
+                          <span style="width:7px;height:7px;border-radius:50%;background:{{ h.dot }};flex-shrink:0"></span>
+                          <span style="font-weight:500;font-size:14px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.name }}</span>
+                        </div>
+                        <div style="font-family:'Geist Mono',monospace;font-size:12px;color:#8b8f98">{{ h.endpoint }}</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px">
+                          <div style="display:flex;gap:4px;flex-wrap:wrap">
+                            <sc-for list="{{ h.tagList }}" as="tg">
+                              <span style="font-size:11px;padding:2px 7px;border-radius:4px;background:#1e2024;color:#a4a8b0">{{ tg.t }}</span>
+                            </sc-for>
+                          </div>
+                          <span style="font-size:12px;color:{{ h.latColor }};font-family:'Geist Mono',monospace;white-space:nowrap">{{ h.lat }}</span>
+                        </div>
+                      </button>
+                      <div style="position:absolute;top:10px;right:10px;display:flex;gap:2px">
+                        <button onClick="{{ h.edit }}" title="Edit host" style="width:22px;height:22px;border:none;border-radius:5px;background:transparent;color:#6f737c;cursor:pointer;font-size:12px" style-hover="background:#24262b;color:#e6e7ea">✎</button>
+                        <button onClick="{{ h.del }}" title="Remove host" style="width:22px;height:22px;border:none;border-radius:5px;background:transparent;color:#6f737c;cursor:pointer;font-size:15px;line-height:1" style-hover="background:#24262b;color:#f07a6a">×</button>
+                      </div>
+                    </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:48px 0;text-align:center;color:#8b8f98">{{ emptyMsg }}</div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ navKeys }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:24px">
+                <div>
+                  <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.02em">Keys</h1>
+                  <div style="margin-top:4px;color:#8b8f98">Private keys live in data/keys on this machine; keys from ~/.ssh are listed too. Copy a public key into the server’s ~/.ssh/authorized_keys.</div>
+                </div>
+                <button onClick="{{ generateKey }}" style="height:34px;padding:0 14px;border:none;border-radius:8px;background:{{ accent }};color:#0b0c0e;font-weight:500;font-size:13px;cursor:pointer">Generate key</button>
+              </div>
+              <div style="border:1px solid #222429;border-radius:10px;overflow-x:auto">
+                <div style="min-width:720px">
+                  <div style="display:grid;grid-template-columns:minmax(160px,1.2fr) 110px minmax(240px,2.2fr) 70px 90px 110px;gap:16px;padding:10px 16px;font-size:11px;font-weight:500;letter-spacing:0.06em;text-transform:uppercase;color:#6f737c;border-bottom:1px solid #222429;background:#121316">
+                    <span>Name</span><span>Type</span><span>Fingerprint</span><span>Hosts</span><span>Added</span><span></span>
+                  </div>
+                  <sc-for list="{{ keys }}" as="k" hint-placeholder-count="3">
+                    <div style="display:grid;grid-template-columns:minmax(160px,1.2fr) 110px minmax(240px,2.2fr) 70px 90px 110px;gap:16px;align-items:center;padding:13px 16px;border-bottom:1px solid #1c1e22">
+                      <span style="font-weight:500">{{ k.name }}</span>
+                      <span style="color:#a4a8b0;font-family:'Geist Mono',monospace;font-size:12px">{{ k.type }}</span>
+                      <span style="color:#8b8f98;font-family:'Geist Mono',monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ k.fp }}</span>
+                      <span style="color:#a4a8b0">{{ k.hosts }}</span>
+                      <span style="color:#8b8f98">{{ k.added }}</span>
+                      <button onClick="{{ k.copyPub }}" style="height:26px;padding:0 8px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#a4a8b0;font-size:12px;cursor:pointer" style-hover="color:#e6e7ea;border-color:#3a3d43">Copy public</button>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ navForwards }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="margin-bottom:24px">
+                <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.02em">Port forwarding</h1>
+                <div style="margin-top:4px;color:#8b8f98">Tunnels open in the background while their jump host is reachable.</div>
+              </div>
+              <sc-if value="{{ hasHosts }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px;padding:12px;background:#121316;border:1px solid #222429;border-radius:10px">
+                <input value="{{ fwName }}" onChange="{{ onFwName }}" placeholder="Name" spellCheck="false" style="height:32px;width:130px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                <select value="{{ fwType }}" onChange="{{ onFwType }}" style="height:32px;padding:0 8px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;outline:none"><option value="Local">Local</option><option value="Dynamic">Dynamic (SOCKS)</option></select>
+                <input value="{{ fwLocal }}" onChange="{{ onFwLocal }}" placeholder="Local port" spellCheck="false" style="height:32px;width:96px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                <sc-if value="{{ fwIsLocal }}" hint-placeholder-val="{{ true }}">
+                  <span style="color:#6f737c">→</span>
+                  <input value="{{ fwRHost }}" onChange="{{ onFwRHost }}" placeholder="Remote host" spellCheck="false" style="height:32px;width:160px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                  <input value="{{ fwRPort }}" onChange="{{ onFwRPort }}" placeholder="Port" spellCheck="false" style="height:32px;width:72px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                </sc-if>
+                <span style="color:#6f737c;font-size:12px">via</span>
+                <select value="{{ fwVia }}" onChange="{{ onFwVia }}" style="height:32px;padding:0 8px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;outline:none">
+                  <sc-for list="{{ hostOpts }}" as="o"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+                </select>
+                <button onClick="{{ addForward }}" style="height:32px;padding:0 12px;border:none;border-radius:8px;background:{{ accent }};color:#0b0c0e;font-weight:500;font-size:12px;cursor:pointer">Add</button>
+              </div>
+              </sc-if>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ forwards }}" as="f" hint-placeholder-count="3">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:16px 20px;padding:14px 16px;background:#141518;border:1px solid #222429;border-radius:10px">
+                    <button onClick="{{ f.toggle }}" title="Toggle tunnel" style="width:34px;height:20px;padding:2px;border:none;border-radius:10px;background:{{ f.track }};cursor:pointer;flex-shrink:0;display:flex">
+                      <span style="width:16px;height:16px;border-radius:50%;background:#e6e7ea;transform:translateX({{ f.knob }})"></span>
+                    </button>
+                    <div style="width:160px">
+                      <div style="font-weight:500">{{ f.name }}</div>
+                      <div style="font-size:12px;color:#8b8f98;margin-top:2px">{{ f.type }} · via {{ f.via }}</div>
+                    </div>
+                    <div style="flex:1;min-width:240px;font-family:'Geist Mono',monospace;font-size:12px;color:#c9cbd1">{{ f.from }}  →  {{ f.to }}</div>
+                    <span style="font-size:12px;color:{{ f.stateColor }};max-width:240px">{{ f.state }}</span>
+                    <button onClick="{{ f.del }}" title="Delete forward" style="width:24px;height:24px;border:none;border-radius:6px;background:transparent;color:#6f737c;cursor:pointer;font-size:15px" style-hover="background:#24262b;color:#f07a6a">×</button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ navSessions }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="margin-bottom:24px">
+                <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.02em">Sessions</h1>
+                <div style="margin-top:4px;color:#8b8f98">{{ sessionSummary }}</div>
+              </div>
+              <sc-if value="{{ noSessions }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:48px 0;text-align:center;color:#8b8f98">No open sessions. Connect to a host from the sidebar.</div>
+              </sc-if>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ sessionRows }}" as="r" hint-placeholder-count="2">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:14px 16px;background:#141518;border:1px solid #222429;border-radius:10px">
+                    <span style="width:8px;height:8px;border-radius:50%;background:{{ r.color }};flex-shrink:0"></span>
+                    <div style="width:170px"><div style="font-weight:500">{{ r.name }}</div><div style="font-size:12px;color:{{ r.color }};margin-top:2px">{{ r.status }}</div></div>
+                    <div style="flex:1;min-width:200px;font-family:'Geist Mono',monospace;font-size:12px;color:#c9cbd1">{{ r.endpoint }}</div>
+                    <div style="width:150px;font-size:12px;color:#8b8f98">{{ r.since }}</div>
+                    <div style="width:70px;font-size:12px;font-family:'Geist Mono',monospace;color:#8b8f98">{{ r.lat }}</div>
+                    <button onClick="{{ r.open }}" style="height:28px;padding:0 10px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="color:#e6e7ea;border-color:#3a3d43">Open</button>
+                    <button onClick="{{ r.toggle }}" style="height:28px;padding:0 10px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="color:#e6e7ea;border-color:#3a3d43">{{ r.toggleLabel }}</button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ navSnippets }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="margin-bottom:24px">
+                <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.02em">Snippets</h1>
+                <div style="margin-top:4px;color:#8b8f98">Run any snippet from an open session’s Snippets panel.</div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+                <input value="{{ snName }}" onChange="{{ onSnName }}" placeholder="Name" spellCheck="false" style="height:32px;width:180px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                <input value="{{ snCmd }}" onChange="{{ onSnCmd }}" placeholder="Command" spellCheck="false" style="height:32px;width:320px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:12px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+                <button onClick="{{ addSnippet }}" style="height:32px;padding:0 12px;border:none;border-radius:8px;background:{{ accent }};color:#0b0c0e;font-weight:500;font-size:12px;cursor:pointer">Add snippet</button>
+              </div>
+              <div style="border:1px solid #222429;border-radius:10px;overflow:hidden">
+                <sc-for list="{{ snippets }}" as="sn" hint-placeholder-count="5">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:13px 16px;border-bottom:1px solid #1c1e22">
+                    <span style="width:180px;font-weight:500">{{ sn.name }}</span>
+                    <code style="flex:1;min-width:200px;font-family:'Geist Mono',monospace;font-size:12px;color:#c9cbd1">{{ sn.cmd }}</code>
+                    <button onClick="{{ sn.copy }}" style="height:28px;padding:0 10px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#a4a8b0;font-size:12px;cursor:pointer" style-hover="color:#e6e7ea;border-color:#3a3d43">Copy</button>
+                    <button onClick="{{ sn.del }}" style="height:28px;padding:0 10px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#a4a8b0;font-size:12px;cursor:pointer" style-hover="color:#f07a6a;border-color:#3a3d43">Delete</button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSession }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;min-height:0">
+        <div style="flex:1;min-width:420px;display:flex;flex-direction:column;background:{{ termBg }}">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px 10px 20px;border-bottom:1px solid #1c1e22;flex-shrink:0">
+            <div style="display:flex;align-items:baseline;gap:12px;min-width:0;flex:1 1 200px">
+              <span style="font-weight:600;font-size:14px;white-space:nowrap">{{ curName }}</span>
+              <span style="font-family:'Geist Mono',monospace;font-size:12px;color:#8b8f98;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ curEndpoint }}</span>
+              <span style="font-size:12px;color:{{ statusColor }};white-space:nowrap">{{ statusLabel }}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+              <button onClick="{{ toggleSftp }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ sftpBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Files</button>
+              <button onClick="{{ toggleSnip }}" style="height:28px;padding:0 10px;border:none;border-radius:6px;background:{{ snipBg }};color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">Snippets</button>
+              <span style="width:1px;height:16px;background:#2a2c31;margin:0 6px"></span>
+              <button onClick="{{ primaryAction }}" style="height:28px;padding:0 10px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#c9cbd1;font-size:12px;cursor:pointer" style-hover="border-color:#3a3d43;color:#e6e7ea">{{ primaryLabel }}</button>
+            </div>
+          </div>
+          <div style="flex:1;position:relative;min-height:0">
+            <div ref="{{ termRef }}" style="position:absolute;inset:0;overflow:hidden"></div>
+          </div>
+          <sc-if value="{{ showRetry }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid #1c1e22;flex-shrink:0">
+              <span style="flex:1;min-width:0;font-size:12px;color:{{ statusColor }}">{{ errorText }}</span>
+              <button onClick="{{ reconnect }}" style="height:30px;padding:0 12px;border:none;border-radius:6px;background:{{ accent }};color:#0b0c0e;font-size:12px;font-weight:500;cursor:pointer">Reconnect</button>
+              <button onClick="{{ closeCurrent }}" style="height:30px;padding:0 12px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#c9cbd1;font-size:12px;cursor:pointer">Close tab</button>
+            </div>
+          </sc-if>
+        
+        </div>
+
+        <sc-if value="{{ panelSftp }}" hint-placeholder-val="{{ false }}">
+          <aside style="width:min(300px,34%);min-width:220px;flex-shrink:1;border-left:1px solid #1f2125;background:#121316;display:flex;flex-direction:column;min-height:0">
+            <div style="display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 8px 0 16px;border-bottom:1px solid #1f2125;flex-shrink:0">
+              <span style="font-weight:500">Files</span>
+              <button onClick="{{ closePanel }}" title="Close panel" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:#8b8f98;font-size:15px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">×</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #1f2125;flex-shrink:0">
+              <button onClick="{{ sftpReload }}" title="Refresh" style="width:26px;height:26px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#a4a8b0;font-size:12px;cursor:pointer;flex-shrink:0" style-hover="color:#e6e7ea">↻</button>
+              <button onClick="{{ sftpUp }}" title="Parent folder" style="width:26px;height:26px;border:1px solid #2a2c31;border-radius:6px;background:transparent;color:#a4a8b0;font-size:12px;cursor:pointer;flex-shrink:0" style-hover="color:#e6e7ea">↑</button>
+              <div style="flex:1;min-width:0;font-family:'Geist Mono',monospace;font-size:12px;color:#a4a8b0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ sftpPathFull }}</div>
+            </div>
+            <div style="flex:1;overflow:auto;padding:6px">
+              <sc-for list="{{ sftpFiles }}" as="f" hint-placeholder-count="5">
+                <button onClick="{{ f.open }}" style="display:flex;align-items:center;gap:10px;width:100%;height:30px;padding:0 10px;border:none;border-radius:6px;background:transparent;color:#c9cbd1;cursor:pointer;text-align:left;font-size:13px" style-hover="background:#1b1c20;color:#e6e7ea">
+                  <span style="width:8px;height:8px;border-radius:2px;background:{{ f.mark }};flex-shrink:0"></span>
+                  <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.label }}</span>
+                  <span style="font-family:'Geist Mono',monospace;font-size:11px;color:#6f737c">{{ f.size }}</span>
+                </button>
+              </sc-for>
+              <sc-if value="{{ sftpEmpty }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:24px 10px;color:#6f737c;font-size:12px">Empty folder</div>
+              </sc-if>
+              <sc-if value="{{ hasSftpError }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:12px 10px;color:#f07a6a;font-size:12px">{{ sftpError }}</div>
+              </sc-if>
+            </div>
+            <div onDragOver="{{ onDragOver }}" onDrop="{{ onDrop }}" style="margin:12px;padding:16px;border:1px dashed #2f3237;border-radius:8px;text-align:center;color:#8b8f98;font-size:12px;line-height:1.5">Drop files to upload to<br><span style="font-family:'Geist Mono',monospace;color:#c9cbd1">{{ sftpPath }}</span></div>
+          </aside>
+        </sc-if>
+
+        <sc-if value="{{ panelSnippets }}" hint-placeholder-val="{{ false }}">
+          <aside style="width:min(300px,34%);min-width:220px;flex-shrink:1;border-left:1px solid #1f2125;background:#121316;display:flex;flex-direction:column;min-height:0">
+            <div style="display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 8px 0 16px;border-bottom:1px solid #1f2125;flex-shrink:0">
+              <span style="font-weight:500">Snippets</span>
+              <button onClick="{{ closePanel }}" title="Close panel" style="width:26px;height:26px;border:none;border-radius:6px;background:transparent;color:#8b8f98;font-size:15px;cursor:pointer" style-hover="background:#1e2024;color:#e6e7ea">×</button>
+            </div>
+            <div style="flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:4px">
+              <sc-for list="{{ snippets }}" as="sn" hint-placeholder-count="5">
+                <button onClick="{{ sn.run }}" style="display:flex;flex-direction:column;gap:4px;width:100%;padding:10px 12px;border:none;border-radius:8px;background:transparent;color:#e6e7ea;cursor:pointer;text-align:left;font-size:13px" style-hover="background:#1b1c20">
+                  <span>{{ sn.name }}</span>
+                  <code style="font-family:'Geist Mono',monospace;font-size:11px;color:#8b8f98">{{ sn.cmd }}</code>
+                </button>
+              </sc-for>
+            </div>
+          </aside>
+        </sc-if>
+      </div>
+    </sc-if>
+  </main>
+
+  <sc-if value="{{ showModal }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeModal }}" style="position:fixed;inset:0;background:rgba(5,6,8,0.72);display:flex;align-items:center;justify-content:center;padding:24px;z-index:50">
+      <div onClick="{{ stop }}" style="width:100%;max-width:460px;background:#16171b;border:1px solid #2a2c31;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,0.5)">
+        <div style="padding:20px 22px 4px">
+          <div style="font-size:16px;font-weight:600">{{ modalTitle }}</div>
+          <div style="margin-top:4px;color:#8b8f98">Saved on this machine in data/state.json.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;padding:18px 22px">
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:12px;color:#a4a8b0">Label</span>
+            <input value="{{ fLabel }}" onChange="{{ onLabel }}" placeholder="prod-worker-01" spellCheck="false" style="height:36px;padding:0 12px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:13px;outline:none" style-focus="border-color:#4a4d54">
+          </label>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:10px">
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:12px;color:#a4a8b0">Hostname or IP</span>
+              <input value="{{ fHost }}" onChange="{{ onHost }}" placeholder="10.0.1.20" spellCheck="false" style="height:36px;padding:0 12px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:13px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:12px;color:#a4a8b0">Port</span>
+              <input value="{{ fPort }}" onChange="{{ onPort }}" spellCheck="false" style="height:36px;padding:0 12px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:13px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+            </label>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px">
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:12px;color:#a4a8b0">Username</span>
+              <input value="{{ fUser }}" onChange="{{ onUser }}" placeholder="deploy" spellCheck="false" style="height:36px;padding:0 12px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:13px;font-family:'Geist Mono',monospace;outline:none" style-focus="border-color:#4a4d54">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:12px;color:#a4a8b0">Group</span>
+              <select value="{{ fGroup }}" onChange="{{ onGroup }}" style="height:36px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:13px;outline:none">
+                <sc-for list="{{ groupOptions }}" as="o">
+                  <option value="{{ o.v }}">{{ o.v }}</option>
+                </sc-for>
+              </select>
+            </label>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:12px;color:#a4a8b0">Authentication</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:3px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px">
+              <button onClick="{{ setAuthKey }}" style="height:28px;border:none;border-radius:6px;background:{{ authKeyBg }};color:#e6e7ea;font-size:12px;cursor:pointer">SSH key</button>
+              <button onClick="{{ setAuthPw }}" style="height:28px;border:none;border-radius:6px;background:{{ authPwBg }};color:#e6e7ea;font-size:12px;cursor:pointer">Password</button>
+              <button onClick="{{ setAuthAgent }}" style="height:28px;border:none;border-radius:6px;background:{{ authAgentBg }};color:#e6e7ea;font-size:12px;cursor:pointer">Agent</button>
+            </div>
+          </div>
+          <sc-if value="{{ isKeyAuth }}" hint-placeholder-val="{{ true }}">
+            <select value="{{ fKey }}" onChange="{{ onKeySel }}" style="height:36px;padding:0 10px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:13px;outline:none">
+              <sc-for list="{{ keys }}" as="k">
+                <option value="{{ k.name }}">{{ k.name }} · {{ k.type }}</option>
+              </sc-for>
+            </select>
+            <sc-if value="{{ noKeys }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#e8b85a">No keys yet. Generate one on the Keys page first.</div></sc-if>
+          </sc-if>
+          <sc-if value="{{ isPwAuth }}" hint-placeholder-val="{{ false }}">
+            <input type="password" value="{{ fPw }}" onChange="{{ onPw }}" placeholder="{{ pwPlaceholder }}" style="height:36px;padding:0 12px;background:#0e0f11;border:1px solid #2a2c31;border-radius:8px;color:#e6e7ea;font-size:13px;outline:none" style-focus="border-color:#4a4d54">
+          </sc-if>
+          <sc-if value="{{ hasFormError }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:12px;color:#f07a6a">{{ formError }}</div>
+          </sc-if>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;padding:14px 22px 20px;border-top:1px solid #222429">
+          <button onClick="{{ closeModal }}" style="height:34px;padding:0 14px;border:none;border-radius:8px;background:transparent;color:#a4a8b0;font-size:13px;cursor:pointer" style-hover="color:#e6e7ea">Cancel</button>
+          <button onClick="{{ saveOnly }}" style="height:34px;padding:0 14px;border:1px solid #2a2c31;border-radius:8px;background:transparent;color:#e6e7ea;font-size:13px;cursor:pointer" style-hover="border-color:#3a3d43">Save</button>
+          <button onClick="{{ saveConnect }}" style="height:34px;padding:0 14px;border:none;border-radius:8px;background:{{ accent }};color:#0b0c0e;font-weight:500;font-size:13px;cursor:pointer">Save &amp; connect</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#e6e7ea;color:#0e0f11;padding:9px 14px;border-radius:8px;font-size:13px;font-weight:500;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,0.4)">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#5fd4a0&quot;,&quot;options&quot;:[&quot;#5fd4a0&quot;,&quot;#7aa2ff&quot;,&quot;#e8b85a&quot;,&quot;#c49bff&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;termFontSize&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:13,&quot;min&quot;:11,&quot;max&quot;:18,&quot;step&quot;:1,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;},&quot;terminalTheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Graphite&quot;,&quot;options&quot;:[&quot;Graphite&quot;,&quot;Black&quot;,&quot;Navy&quot;],&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  static GROUPS = ['Production', 'Staging', 'Homelab', 'Unsorted'];
+
+  state = {
+    hosts: [], keys: [], forwards: [], snippets: [], fwdStatus: {}, probe: {},
+    sessions: [], active: 'home', nav: 'hosts', query: '', quick: '',
+    modal: false, form: this.blank(), fwdForm: this.blankFwd(), snipForm: { name: '', cmd: '' }, toast: null,
+  };
+  termRef = React.createRef();
+  quickRef = React.createRef();
+  _n = 0;
+  rt = {}; // per-session runtime objects (xterm, websocket); not React state
+
+  blank() { return { id: null, label: '', host: '', port: '22', user: '', group: 'Unsorted', auth: 'key', key: '', pw: '', hasPw: false, error: '' }; }
+  blankFwd() { return { name: '', type: 'Local', localPort: '', remoteHost: '', remotePort: '', via: '' }; }
+
+  // ---------- lifecycle ----------
+  async componentDidMount() {
+    this._onGlobalKey = e => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); this.quickRef.current?.focus(); }
+      if (e.key === 'Escape' && this.state.modal) this.setState({ modal: false });
+    };
+    this._onResize = () => this.fitAll();
+    window.addEventListener('keydown', this._onGlobalKey);
+    window.addEventListener('resize', this._onResize);
+    try { await Promise.all([this.loadLibs(), this.refresh()]); }
+    catch (e) { return this.toast('Cannot reach the Burrow server: ' + e.message); }
+    this.probe();
+    this._probeT = setInterval(() => this.probe(), 30000);
+    this._tickT = setInterval(() => { if (this.state.nav === 'sessions' && !this.sess(this.state.active)) this.forceUpdate(); }, 5000);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('keydown', this._onGlobalKey);
+    window.removeEventListener('resize', this._onResize);
+    clearInterval(this._probeT); clearInterval(this._tickT); clearTimeout(this._toastT); clearTimeout(this._saveT);
+    Object.keys(this.rt).forEach(id => this.destroyRt(id));
+  }
+  componentDidUpdate() {
+    const host = this.termRef.current; const cur = this.sess(this.state.active);
+    const rt = cur && this.rt[cur.id];
+    if (host && rt && rt.el.parentNode !== host) host.replaceChildren(rt.el);
+    const fs = this.props.termFontSize ?? 13; const th = this.termTheme();
+    for (const id of Object.keys(this.rt)) {
+      const r = this.rt[id];
+      if (r.fs !== fs) { r.fs = fs; r.term.options.fontSize = fs; }
+      if (r.th !== th.key) { r.th = th.key; r.term.options.theme = th.theme; }
+    }
+    if (rt) requestAnimationFrame(() => { this.fitOne(rt); if (this._focusId !== cur.id) { this._focusId = cur.id; rt.term.focus(); } });
+    else this._focusId = null;
+  }
+
+  // ---------- helpers ----------
+  toast(msg) { clearTimeout(this._toastT); this.setState({ toast: msg }); this._toastT = setTimeout(() => this.setState({ toast: null }), 2600); }
+  sess(id) { return this.state.sessions.find(x => x.id === id); }
+  host(id) { return this.state.hosts.find(h => h.id === id); }
+  upd(id, fn) { this.setState(s => ({ sessions: s.sessions.map(x => x.id === id ? { ...x, ...fn(x) } : x) })); }
+  async api(method, url, body) {
+    const r = await fetch(url, { method, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || r.statusText);
+    return j;
+  }
+  loadScript(src) { return new Promise((ok, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('failed to load ' + src)); document.head.appendChild(s); }); }
+  async loadLibs() {
+    if (window.Terminal && window.FitAddon) return;
+    const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/vendor/xterm.css'; document.head.appendChild(l);
+    await this.loadScript('/vendor/xterm.js'); await this.loadScript('/vendor/addon-fit.js');
+  }
+  async refresh() {
+    const j = await this.api('GET', '/api/state');
+    this.setState({ hosts: j.hosts, forwards: j.forwards, snippets: j.snippets, keys: j.keys, fwdStatus: j.fwdStatus });
+  }
+  save() {
+    clearTimeout(this._saveT);
+    this._saveT = setTimeout(() => {
+      const s = this.state;
+      this.api('PUT', '/api/state', { hosts: s.hosts, forwards: s.forwards, snippets: s.snippets })
+        .then(() => this.refresh()).catch(e => this.toast('Save failed: ' + e.message));
+    }, 150);
+  }
+  mutate(partial, cb) { this.setState(partial, () => { this.save(); cb && cb(); }); }
+  async probe() {
+    try { const p = await this.api('POST', '/api/probe', {}); this.setState({ probe: p }); } catch {}
+  }
+  termTheme() {
+    const accent = this.props.accent ?? '#5fd4a0';
+    const bg = { Graphite: '#101114', Black: '#050505', Navy: '#0c111d' }[this.props.terminalTheme ?? 'Graphite'] || '#101114';
+    return { key: accent + bg, bg, theme: { background: bg, foreground: '#e6e7ea', cursor: accent, selectionBackground: '#3a4150' } };
+  }
+
+  // ---------- terminal sessions ----------
+  makeRt(id) {
+    const th = this.termTheme(); const fs = this.props.termFontSize ?? 13;
+    const term = new window.Terminal({ fontFamily: "'Geist Mono', ui-monospace, Consolas, monospace", fontSize: fs, cursorBlink: true, scrollback: 5000, theme: th.theme });
+    const fit = new window.FitAddon.FitAddon(); term.loadAddon(fit);
+    const el = document.createElement('div'); el.style.cssText = 'position:absolute;inset:0;padding:12px 4px 4px 16px';
+    term.open(el);
+    const rt = { term, fit, el, ws: null, fs, th: th.key, sftpPending: null };
+    term.onData(d => this.wsSend(rt, { type: 'in', data: d }));
+    term.onResize(({ cols, rows }) => this.wsSend(rt, { type: 'resize', cols, rows }));
+    term.attachCustomKeyEventHandler(e => {
+      if (e.type === 'keydown' && e.ctrlKey && e.shiftKey && e.key === 'C') { navigator.clipboard?.writeText(term.getSelection()); return false; }
+      if (e.type === 'keydown' && e.ctrlKey && e.key === 'c' && term.hasSelection()) { navigator.clipboard?.writeText(term.getSelection()); term.clearSelection(); return false; }
+      return true;
+    });
+    this.rt[id] = rt; return rt;
+  }
+  destroyRt(id) {
+    const rt = this.rt[id]; if (!rt) return;
+    const ws = rt.ws; rt.ws = null;
+    try { ws && ws.close(); } catch {}
+    try { rt.term.dispose(); } catch {}
+    delete this.rt[id];
+  }
+  wsSend(rt, o) { if (rt.ws && rt.ws.readyState === 1) rt.ws.send(JSON.stringify(o)); }
+  fitOne(rt) { try { if (rt.el.offsetWidth > 0) rt.fit.fit(); } catch {} }
+  fitAll() { const cur = this.sess(this.state.active); if (cur && this.rt[cur.id]) this.fitOne(this.rt[cur.id]); }
+
+  openHost(hostId) {
+    const existing = this.state.sessions.find(x => x.hostId === hostId && (x.status === 'connected' || x.status === 'connecting'));
+    if (existing) return this.setState({ active: existing.id });
+    const id = 's' + (++this._n);
+    const sess = { id, hostId, status: 'connecting', error: '', panel: null, sftp: { path: '', entries: [], error: '' } };
+    this.setState(s => ({ sessions: [...s.sessions, sess], active: id }), () => this.connect(id));
+  }
+
+  connect(id) {
+    const x = this.sess(id); if (!x) return;
+    if (!window.Terminal) return this.toast('Terminal library still loading, try again');
+    const rt = this.rt[id] || this.makeRt(id);
+    const dim = t => rt.term.writeln('\x1b[2m' + t + '\x1b[0m');
+    const col = { ok: '\x1b[32m', err: '\x1b[31m', dim: '\x1b[2m', warn: '\x1b[33m' };
+    if (rt.ws) { const old = rt.ws; rt.ws = null; try { old.close(); } catch {} }
+    this.upd(id, () => ({ status: 'connecting', error: '' }));
+    const ws = new WebSocket(`ws://${location.host}/ws`);
+    ws.binaryType = 'arraybuffer'; rt.ws = ws;
+    ws.onopen = () => { this.fitOne(rt); ws.send(JSON.stringify({ type: 'connect', hostId: x.hostId, cols: rt.term.cols, rows: rt.term.rows })); };
+    ws.onmessage = ev => {
+      if (typeof ev.data !== 'string') return rt.term.write(new Uint8Array(ev.data));
+      const m = JSON.parse(ev.data);
+      if (m.type === 'log') rt.term.writeln((col[m.kind] || '') + m.text + '\x1b[0m');
+      else if (m.type === 'status') {
+        if (m.status === 'connected') { this.upd(id, () => ({ status: 'connected', error: '', since: Date.now() })); rt.term.focus(); const c = this.sess(id); if (c && c.panel === 'sftp') this.sftpList(id, c.sftp.path || '.'); }
+        else if (m.status === 'failed' || m.status === 'closed') {
+          if (m.message) rt.term.writeln('\x1b[31m' + m.message + '\x1b[0m'); else if (m.status === 'closed') dim('Connection closed.');
+          this.upd(id, () => ({ status: m.status, error: m.message || '' }));
+        }
+        else this.upd(id, () => ({ status: m.status }));
+      }
+      else if (m.type === 'sftp-list') this.upd(id, () => ({ sftp: { path: m.path, entries: m.entries, error: '' } }));
+      else if (m.type === 'sftp-error') this.upd(id, x2 => ({ sftp: { ...x2.sftp, error: m.message } }));
+      else if (m.type === 'sftp-file') {
+        const bin = atob(m.data); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([arr])); a.download = m.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        this.toast(`Downloaded ${m.name}`);
+      }
+      else if (m.type === 'sftp-put') { this.toast(`Uploaded ${m.name}`); const c = this.sess(id); c && this.sftpList(id, c.sftp.path); }
+    };
+    ws.onclose = () => {
+      if (rt.ws !== ws) return;
+      const c = this.sess(id); if (!c) return;
+      if (c.status === 'connected' || c.status === 'connecting') {
+        dim('Connection to the Burrow server lost.');
+        this.upd(id, () => ({ status: c.status === 'connected' ? 'closed' : 'failed', error: 'Connection to the Burrow server lost.' }));
+      }
+    };
+  }
+
+  disconnect(id) {
+    const rt = this.rt[id]; if (rt) this.wsSend(rt, { type: 'disconnect' });
+    this.upd(id, () => ({ status: 'closed' }));
+  }
+  reconnect(id) { const rt = this.rt[id]; if (rt) rt.term.writeln(''); this.connect(id); }
+  closeSession(id) {
+    this.destroyRt(id);
+    this.setState(s => {
+      const i = s.sessions.findIndex(x => x.id === id);
+      const sessions = s.sessions.filter(x => x.id !== id);
+      let active = s.active;
+      if (active === id) active = sessions[Math.min(i, sessions.length - 1)]?.id || 'home';
+      return { sessions, active };
+    });
+  }
+
+  // ---------- SFTP ----------
+  sftpList(id, path) { const rt = this.rt[id]; rt && this.wsSend(rt, { type: 'sftp-list', path }); }
+  sftpUpload(id, files) {
+    const x = this.sess(id); const rt = this.rt[id]; if (!x || !rt || !x.sftp.path) return;
+    for (const f of files) {
+      if (f.size > 64 * 1024 * 1024) { this.toast(`${f.name} is larger than 64 MB`); continue; }
+      const r = new FileReader();
+      r.onload = () => this.wsSend(rt, { type: 'sftp-put', dir: x.sftp.path, name: f.name, data: String(r.result).split(',')[1] || '' });
+      r.readAsDataURL(f);
+    }
+  }
+  fmtSize(n) { if (n == null) return ''; const u = ['B', 'K', 'M', 'G', 'T']; let i = 0; while (n >= 1024 && i < 4) { n /= 1024; i++; } return (i && n < 10 ? n.toFixed(1) : Math.round(n)) + u[i]; }
+
+  // ---------- vault actions ----------
+  quickConnect() {
+    const v = this.state.quick.trim(); if (!v) return;
+    const m = v.replace(/^ssh\s+/, '').match(/^(?:([^@\s]+)@)?([^:\s]+)(?::(\d+))?$/);
+    if (!m) return this.toast('Use user@host or user@host:port');
+    const [, user, addr, port] = m;
+    let h = this.state.hosts.find(h => (h.name === addr || h.addr === addr) && (!user || h.user === user));
+    const go = hh => this.setState({ quick: '' }, () => this.openHost(hh.id));
+    if (h) return go(h);
+    h = { id: 'h' + Date.now(), name: addr, addr, port: +port || 22, user: user || 'root', group: 'Unsorted', tags: [], auth: 'key', key: '' };
+    this.mutate(s => ({ hosts: [...s.hosts, h] }), () => go(h));
+  }
+
+  saveHost(connect) {
+    const f = this.state.form;
+    if (!f.host.trim() || !f.user.trim()) return this.setState({ form: { ...f, error: 'Hostname and username are required.' } });
+    if (f.auth === 'password' && !f.pw && !f.hasPw) return this.setState({ form: { ...f, error: 'Enter a password, or pick another auth method.' } });
+    const base = { name: f.label.trim() || f.host.trim(), addr: f.host.trim(), port: +f.port || 22, user: f.user.trim(), group: f.group, auth: f.auth, key: f.auth === 'key' ? f.key : '' };
+    if (f.auth === 'password' && f.pw) base.pw = f.pw;
+    const old = f.id && this.host(f.id);
+    const h = { ...(old || { tags: [] }), ...base, id: old ? old.id : 'h' + Date.now() };
+    this.mutate(s => ({ hosts: old ? s.hosts.map(x => x.id === h.id ? h : x) : [...s.hosts, h], modal: false, form: this.blank() }),
+      () => connect ? this.openHost(h.id) : this.toast(`Saved ${h.name} to ${h.group}`));
+  }
+  editHost(id) {
+    const h = this.host(id); if (!h) return;
+    this.setState({ modal: true, form: { id: h.id, label: h.name, host: h.addr, port: String(h.port), user: h.user, group: h.group, auth: h.auth, key: h.key || '', pw: '', hasPw: !!h.hasPw, error: '' } });
+  }
+  deleteHost(id) {
+    const h = this.host(id); if (!h) return;
+    if (!window.confirm(`Remove ${h.name}? Open sessions to it will be closed.`)) return;
+    this.state.sessions.filter(x => x.hostId === id).forEach(x => this.closeSession(x.id));
+    this.mutate(s => ({ hosts: s.hosts.filter(x => x.id !== id), forwards: s.forwards.filter(f => f.via !== id) }), () => this.toast(`Removed ${h.name}`));
+  }
+
+  async generateKey() {
+    try { const k = await this.api('POST', '/api/keys/generate', {}); await this.refresh(); this.toast(`Generated ${k.name}`); }
+    catch (e) { this.toast(e.message); }
+  }
+  async copyPub(name) {
+    try { const { pub } = await this.api('GET', `/api/keys/${encodeURIComponent(name)}/pub`); await navigator.clipboard.writeText(pub); this.toast('Public key copied. Add it to ~/.ssh/authorized_keys on the server'); }
+    catch (e) { this.toast(e.message); }
+  }
+
+  sendToActive(data) {
+    const x = this.sess(this.state.active); const rt = x && this.rt[x.id];
+    if (!x || x.status !== 'connected' || !rt) return this.toast('Connect to a host to run snippets');
+    this.wsSend(rt, { type: 'in', data }); rt.term.focus();
+  }
+  addSnippet() {
+    const f = this.state.snipForm; if (!f.name.trim() || !f.cmd.trim()) return this.toast('Snippet needs a name and a command');
+    this.mutate(s => ({ snippets: [...s.snippets, { name: f.name.trim(), cmd: f.cmd.trim() }], snipForm: { name: '', cmd: '' } }));
+  }
+
+  addForward() {
+    const f = this.state.fwdForm;
+    const dyn = f.type === 'Dynamic'; const via = f.via || (this.state.hosts[0] && this.state.hosts[0].id);
+    if (!f.name.trim() || !via || !+f.localPort || (!dyn && (!f.remoteHost.trim() || !+f.remotePort))) return this.toast('Fill in name, jump host and ports');
+    const fw = { id: 'f' + Date.now(), name: f.name.trim(), type: f.type, localPort: +f.localPort, remoteHost: dyn ? '' : f.remoteHost.trim(), remotePort: dyn ? 0 : +f.remotePort, via };
+    this.mutate(s => ({ forwards: [...s.forwards, fw], fwdForm: this.blankFwd() }));
+  }
+  async toggleForward(fw) {
+    const running = this.state.fwdStatus[fw.id]?.state === 'listening';
+    try {
+      if (running) await this.api('POST', `/api/forwards/${fw.id}/stop`, {});
+      else {
+        await this.api('PUT', '/api/state', { hosts: this.state.hosts, forwards: this.state.forwards, snippets: this.state.snippets });
+        const r = await this.api('POST', `/api/forwards/${fw.id}/start`, {});
+        if (!r.ok) this.toast(`${fw.name}: ${r.error}`);
+      }
+    } catch (e) { this.toast(e.message); }
+    await this.refresh();
+  }
+  deleteForward(id) { this.api('POST', `/api/forwards/${id}/stop`, {}).catch(() => {}); this.mutate(s => ({ forwards: s.forwards.filter(f => f.id !== id) })); }
+
+  setForm(k) { return e => this.setState(s => ({ form: { ...s.form, [k]: e.target.value, error: '' } })); }
+  setFwd(k) { return e => this.setState(s => ({ fwdForm: { ...s.fwdForm, [k]: e.target.value } })); }
+  setSnip(k) { return e => this.setState(s => ({ snipForm: { ...s.snipForm, [k]: e.target.value } })); }
+
+  // ---------- view model ----------
+  renderVals() {
+    const s = this.state;
+    const accent = this.props.accent ?? '#5fd4a0';
+    const fontSize = this.props.termFontSize ?? 13;
+    const termBg = this.termTheme().bg;
+    const warn = '#e8b85a', err = '#f07a6a', off = '#4a4d54';
+    const cur = this.sess(s.active);
+    const isHome = !cur;
+    const openIds = new Set(s.sessions.filter(x => x.status === 'connected' || x.status === 'connecting').map(x => x.hostId));
+    const groupNames = [...new Set([...s.hosts.map(h => h.group)])];
+    const mkHost = h => {
+      const p = s.probe[h.id];
+      return {
+        ...h,
+        dot: p ? (p.online ? accent : off) : off,
+        endpoint: `${h.user}@${h.addr}${h.port !== 22 ? ':' + h.port : ''}`,
+        lat: p ? (p.online ? `${p.latency} ms` : 'Unreachable') : '…',
+        latColor: p && p.online ? '#8b8f98' : '#6f737c',
+        isOpen: openIds.has(h.id),
+        rowBg: cur && cur.hostId === h.id ? '#1e2024' : 'transparent',
+        tagList: (h.tags || []).map(t => ({ t })),
+        connect: () => this.openHost(h.id),
+        edit: () => this.editHost(h.id),
+        del: () => this.deleteHost(h.id),
+      };
+    };
+    const q = s.query.trim().toLowerCase();
+    const match = h => !q || [h.name, h.addr, h.user, h.group, ...(h.tags || [])].some(v => v.toLowerCase().includes(q));
+    const filteredGroups = groupNames.map(g => {
+      const hosts = s.hosts.filter(h => h.group === g && match(h)).map(mkHost);
+      return { name: g, count: hosts.length, hosts };
+    }).filter(g => g.hosts.length);
+    const online = s.hosts.filter(h => s.probe[h.id]?.online).length;
+    const running = s.forwards.filter(f => s.fwdStatus[f.id]?.state === 'listening').length;
+
+    const navDefs = [['hosts', 'Hosts', s.hosts.length], ['sessions', 'Sessions', s.sessions.filter(x => x.status === 'connected').length], ['keys', 'Keys', s.keys.length], ['forwards', 'Port forwarding', running + ' on'], ['snippets', 'Snippets', s.snippets.length]];
+    const navItems = navDefs.map(([k, label, count]) => {
+      const on = isHome && s.nav === k;
+      return { label, count, bg: on ? '#1e2024' : 'transparent', color: on ? '#e6e7ea' : '#a4a8b0', go: () => this.setState({ nav: k, active: 'home' }) };
+    });
+
+    const statusMap = { connecting: ['Connecting…', warn], connected: ['Connected', accent], failed: ['Connection failed', err], closed: ['Disconnected', '#8b8f98'] };
+    const tabs = s.sessions.map(x => {
+      const h = this.host(x.hostId); const on = s.active === x.id;
+      const c = statusMap[x.status][1];
+      return {
+        label: h ? h.name : '(removed)', dot: c === '#8b8f98' ? off : c,
+        bg: on ? termBg : 'transparent', color: on ? '#e6e7ea' : '#8b8f98', shadow: on ? `inset 0 -2px 0 ${accent}` : 'none',
+        select: () => this.setState({ active: x.id }),
+        close: e => { e.stopPropagation(); this.closeSession(x.id); },
+      };
+    });
+
+    const ch = cur && this.host(cur.hostId);
+    const panel = cur?.panel;
+    const togglePanel = p => () => {
+      if (!cur) return;
+      this.upd(cur.id, x => ({ panel: x.panel === p ? null : p }));
+      if (p === 'sftp' && panel !== 'sftp' && cur.status === 'connected') this.sftpList(cur.id, cur.sftp.path || '.');
+    };
+    const live = cur && (cur.status === 'connected' || cur.status === 'connecting');
+    const snippets = s.snippets.map((sn, i) => ({
+      ...sn,
+      run: () => this.sendToActive(sn.cmd + '\r'),
+      copy: () => { navigator.clipboard?.writeText(sn.cmd).catch(() => {}); this.toast('Copied to clipboard'); },
+      del: () => this.mutate(st => ({ snippets: st.snippets.filter((_, j) => j !== i) })),
+    }));
+    const f = s.form; const ff = s.fwdForm;
+    const sf = cur?.sftp || { path: '', entries: [], error: '' };
+    const keys = s.keys.map(k => ({ ...k, hosts: s.hosts.filter(h => h.auth === 'key' && h.key === k.name).length, copyPub: () => this.copyPub(k.name) }));
+    const hostOpts = s.hosts.map(h => ({ v: h.id, label: h.name }));
+    const forwards = s.forwards.map(fw => {
+      const st = s.fwdStatus[fw.id]; const on = st?.state === 'listening';
+      const via = this.host(fw.via);
+      return {
+        ...fw, via: via ? via.name : '(missing host)',
+        from: `localhost:${fw.localPort}`, to: fw.type === 'Dynamic' ? '*' : `${fw.remoteHost}:${fw.remotePort}`,
+        track: on ? accent : '#2a2c31', knob: on ? '14px' : '0px',
+        state: on ? 'Listening' : st?.state === 'error' ? st.error : 'Off', stateColor: on ? accent : st?.state === 'error' ? err : '#6f737c',
+        toggle: () => this.toggleForward(fw), del: () => this.deleteForward(fw.id),
+      };
+    });
+
+    return {
+      accent, fontSize, termBg,
+      quick: s.quick, quickRef: this.quickRef,
+      onQuick: e => this.setState({ quick: e.target.value }),
+      onQuickKey: e => { if (e.key === 'Enter') this.quickConnect(); if (e.key === 'Escape') e.target.blur(); },
+      navItems,
+      sidebarGroups: groupNames.map(g => ({ name: g, hosts: s.hosts.filter(h => h.group === g).map(mkHost) })),
+      tabs,
+      homeBg: isHome ? '#0e0f11' : 'transparent', homeColor: isHome ? '#e6e7ea' : '#8b8f98', homeShadow: isHome ? `inset 0 -2px 0 ${accent}` : 'none',
+      goHome: () => this.setState({ active: 'home' }),
+      openNewHost: () => this.setState({ modal: true, form: this.blank() }),
+      isHome, isSession: !!cur,
+      navHosts: s.nav === 'hosts', navKeys: s.nav === 'keys', navForwards: s.nav === 'forwards', navSnippets: s.nav === 'snippets', navSessions: s.nav === 'sessions',
+      sessionSummary: `${s.sessions.filter(x => x.status === 'connected').length} connected · ${s.sessions.length} open tabs`,
+      noSessions: !s.sessions.length,
+      sessionRows: s.sessions.map(x => {
+        const h = this.host(x.hostId); const live2 = x.status === 'connected' || x.status === 'connecting';
+        const mins = x.since ? Math.floor((Date.now() - x.since) / 60000) : 0;
+        const up = mins < 1 ? 'just now' : mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+        return {
+          name: h ? h.name : '(removed)', endpoint: h ? `${h.user}@${h.addr}:${h.port} · ${h.auth}` : '',
+          status: statusMap[x.status][0], color: statusMap[x.status][1] === '#8b8f98' ? off : statusMap[x.status][1],
+          since: x.since && x.status === 'connected' ? `since ${new Date(x.since).toTimeString().slice(0, 5)} · ${up}` : '',
+          lat: x.status === 'connected' && s.probe[x.hostId]?.latency != null ? s.probe[x.hostId].latency + ' ms' : '',
+          open: () => this.setState({ active: x.id }),
+          toggleLabel: live2 ? 'Disconnect' : 'Close',
+          toggle: () => live2 ? this.disconnect(x.id) : this.closeSession(x.id),
+        };
+      }),
+      query: s.query, onQuery: e => this.setState({ query: e.target.value }),
+      hostSummary: `${s.hosts.length} hosts · ${online} reachable`,
+      filteredGroups, noResults: !filteredGroups.length,
+      emptyMsg: q ? `No hosts match “${s.query}”.` : 'No hosts yet. Click New host, or type user@host in the box at the top left.',
+      keys, generateKey: () => this.generateKey(),
+      forwards, hostOpts, hasHosts: s.hosts.length > 0,
+      fwName: ff.name, fwType: ff.type, fwLocal: ff.localPort, fwRHost: ff.remoteHost, fwRPort: ff.remotePort, fwVia: ff.via || (hostOpts[0] ? hostOpts[0].v : ''),
+      fwIsLocal: ff.type === 'Local',
+      onFwName: this.setFwd('name'), onFwType: this.setFwd('type'), onFwLocal: this.setFwd('localPort'), onFwRHost: this.setFwd('remoteHost'), onFwRPort: this.setFwd('remotePort'),
+      onFwVia: this.setFwd('via'),
+      addForward: () => this.addForward(),
+      snippets,
+      snName: s.snipForm.name, snCmd: s.snipForm.cmd, onSnName: this.setSnip('name'), onSnCmd: this.setSnip('cmd'), addSnippet: () => this.addSnippet(),
+      curName: ch?.name, curEndpoint: ch ? `${ch.user}@${ch.addr}:${ch.port}` : '',
+      statusLabel: cur ? statusMap[cur.status][0] + (cur.status === 'connected' && s.probe[ch?.id]?.latency != null ? ` · ${s.probe[ch.id].latency} ms` : '') : '',
+      statusColor: cur ? statusMap[cur.status][1] : '#8b8f98',
+      errorText: cur?.error || '',
+      sftpBg: panel === 'sftp' ? '#24262b' : 'transparent', snipBg: panel === 'snippets' ? '#24262b' : 'transparent',
+      toggleSftp: togglePanel('sftp'), toggleSnip: togglePanel('snippets'), closePanel: () => cur && this.upd(cur.id, () => ({ panel: null })),
+      primaryLabel: live ? 'Disconnect' : 'Reconnect',
+      primaryAction: () => cur && (live ? this.disconnect(cur.id) : this.reconnect(cur.id)),
+      termRef: this.termRef,
+      showRetry: cur?.status === 'failed' || cur?.status === 'closed',
+      reconnect: () => cur && this.reconnect(cur.id),
+      closeCurrent: () => cur && this.closeSession(cur.id),
+      panelSftp: panel === 'sftp', panelSnippets: panel === 'snippets',
+      sftpPath: sf.path || '…',
+      sftpPathFull: sf.path,
+      sftpError: sf.error, hasSftpError: !!sf.error,
+      sftpUp: () => cur && sf.path && this.sftpList(cur.id, sf.path.replace(/\/[^/]*\/?$/, '') || '/'),
+      sftpReload: () => cur && this.sftpList(cur.id, sf.path || '.'),
+      sftpFiles: sf.entries.map(e => ({
+        label: e.name + (e.dir ? '/' : ''), size: e.dir ? '' : this.fmtSize(e.size), mark: e.dir ? '#9fb4ff' : '#3a3d43',
+        open: () => e.dir ? this.sftpList(cur.id, (sf.path === '/' ? '' : sf.path) + '/' + e.name) : this.wsSend(this.rt[cur.id], { type: 'sftp-get', path: (sf.path === '/' ? '' : sf.path) + '/' + e.name }),
+      })),
+      sftpEmpty: !!cur && !sf.entries.length && !sf.error && !!sf.path,
+      onDragOver: e => e.preventDefault(),
+      onDrop: e => { e.preventDefault(); cur && this.sftpUpload(cur.id, [...e.dataTransfer.files]); },
+      showModal: s.modal, closeModal: () => this.setState({ modal: false }), stop: e => e.stopPropagation(),
+      modalTitle: f.id ? 'Edit host' : 'New host',
+      fLabel: f.label, fHost: f.host, fPort: f.port, fUser: f.user, fGroup: f.group, fKey: f.key || (s.keys[0] ? s.keys[0].name : ''), fPw: f.pw,
+      pwPlaceholder: f.hasPw ? 'Leave blank to keep the saved password' : 'Stored in data/state.json on this machine',
+      onLabel: this.setForm('label'), onHost: this.setForm('host'), onPort: this.setForm('port'), onUser: this.setForm('user'),
+      onGroup: this.setForm('group'), onKeySel: this.setForm('key'), onPw: this.setForm('pw'),
+      groupOptions: [...new Set([...Component.GROUPS, ...groupNames])].map(v => ({ v })),
+      noKeys: !s.keys.length,
+      isKeyAuth: f.auth === 'key', isPwAuth: f.auth === 'password', isAgentAuth: f.auth === 'agent',
+      authKeyBg: f.auth === 'key' ? '#24262b' : 'transparent', authPwBg: f.auth === 'password' ? '#24262b' : 'transparent', authAgentBg: f.auth === 'agent' ? '#24262b' : 'transparent',
+      setAuthKey: () => this.setState(st => ({ form: { ...st.form, auth: 'key', key: st.form.key || (st.keys[0] ? st.keys[0].name : '') } })),
+      setAuthPw: () => this.setState(st => ({ form: { ...st.form, auth: 'password' } })),
+      setAuthAgent: () => this.setState(st => ({ form: { ...st.form, auth: 'agent' } })),
+      hasFormError: !!f.error, formError: f.error,
+      saveOnly: () => this.saveHost(false), saveConnect: () => this.saveHost(true),
+      hasToast: !!s.toast, toast: s.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>

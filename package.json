@@ -1,0 +1,14 @@
+{
+  "name": "burrow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Burrow: local web SSH client (shell, SFTP, tunnels)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
+    "ssh2": "^1.16.0",
+    "ws": "^8.18.0"
+  }
+}

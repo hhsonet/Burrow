@@ -1,0 +1,21 @@
+{
+  "hosts": [
+    {
+      "id": "h1792043612028",
+      "name": "uiu",
+      "addr": "10.100.110.103",
+      "port": 22,
+      "user": "aigpu",
+      "group": "Unsorted",
+      "tags": [],
+      "auth": "password",
+      "key": "",
+      "pw": "@igpu#UIU103"
+    }
+  ],
+  "forwards": [],
+  "snippets": [],
+  "known": {
+    "10.100.110.103:22": "SHA256:2QNybfjyHOeS/zMrW5IlCa7TdnnPvi9EAev77k2JlsA"
+  }
+}
